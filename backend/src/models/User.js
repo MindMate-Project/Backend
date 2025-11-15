@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     verificationToken: { type: String },
     isVerified: { type: Boolean, default: false },//new
+      passwordResetToken: String,
+      passwordResetExpires: Date,
+
   },
   { ...options, timestamps: true }
 );
