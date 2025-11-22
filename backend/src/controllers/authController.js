@@ -84,7 +84,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   // 2. Check if password matches
   if (user && (await user.matchPassword(password))) {
     
-    // 3. NOW check if user is verified
+  
     if (!user.isVerified) {
       res.status(401); // 401 Unauthorized
       throw new Error('Please verify your account first. Check your email for the activation link.');
