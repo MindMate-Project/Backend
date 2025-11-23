@@ -1,6 +1,6 @@
-import express from "express";
+import express, { Router } from "express";
 import { registerUser, loginUser,verifyUserAccount,forgotPassword,resetPassword} from "../controllers/authController.js";
-const router = express.Router();
+const router : Router = express.Router();
 
 router.post("/register",registerUser );
 router.get('/verify/:verificationToken', verifyUserAccount);
