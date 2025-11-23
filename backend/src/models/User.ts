@@ -1,17 +1,16 @@
-import mongoose, { Document, Model, Schema, SchemaDefinition, SchemaOptions } from "mongoose";
+import mongoose, { Document, Model, Schema, SchemaOptions, Types } from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
-import { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb"; // Note: Prefer Types.ObjectId from mongoose
 
-// --- 1. DEFINE INTERFACES FOR TYPE CHECKING ---
+// --- 1. DEFINE INTERFACES FOR TYPE CHECKING (Refactored) ---
 
-// 1.1 Base User Properties (The actual data fields in the Schema)
+// 1.1 Base User Properties (Data fields)
 export interface IBaseUser {
     name: string;
     email: string;
     password?: string;
-    role: "user" | "patient" | "caregiver"; // Explicit role property for the discriminator
-    verificationToken?: string;
+    role: "user" | "patient" | "caregiver" | "admin";    verificationToken?: string;
     isVerified: boolean;
     passwordResetToken?: string;
     passwordResetExpires?: Date;
@@ -22,44 +21,42 @@ export interface IUserMethods {
     matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
-// 1.3 Patient Properties (Discriminator fields)
+// 1.3 Core Mongoose Document Interface (THE KEY FIX)
+// This combines base data, Mongoose Document methods, and custom methods.
+export interface IMongooseBaseUser extends IBaseUser, Document<Types.ObjectId>, IUserMethods {}
+
+
+// 1.4 Discriminator Properties (Fields added by discriminator schemas)
 export interface IPatientProperties {
     dateOfBirth?: Date;
     medicalNotes?: string;
 }
 
-// 1.4 Caregiver Properties (Discriminator fields)
 export interface ICaregiverProperties {
     relation: "son" | "daughter" | "sibling" | "medical_staff" | "other";
     phone: string;
-    rule: "admin" | "user";
-    patients: ObjectId[]; // Array of ObjectIds
+    //rule: "admin" | "user";
+    patients: Types.ObjectId[];
 }
 
-// 1.5 The Final User Document Interface (Used for instances like user.save())
-// Combines base properties, Mongoose Document methods, and custom methods
-export interface IUser extends IBaseUser, Document, IUserMethods { role:"user"}
+// 1.5 Specific Document Interfaces (Narrowed role for internal use)
+// This is the type that will be attached to req.user
+export interface IUser extends IMongooseBaseUser { role: "user" }
+export interface IPatient extends IMongooseBaseUser, IPatientProperties { role: "patient" }
+export interface ICaregiver extends IMongooseBaseUser, ICaregiverProperties { role: "caregiver" }
 
-// 1.6 Discriminator Document Interfaces
-export interface IPatient extends IBaseUser, IPatientProperties, Document, IUserMethods {
-    role: "patient";
-}
 
-export interface ICaregiver extends IBaseUser, ICaregiverProperties, Document, IUserMethods {
-    role: "caregiver";
-}
-
-// 1.7 Model Type Definitions (Used when calling User.findOne() or User.create())
-// This allows Mongoose methods to be typed correctly on the Model itself
-export interface UserModel extends Model<IUser> {}
-export interface PatientModel extends Model<IPatient> {}
-export interface CaregiverModel extends Model<ICaregiver> {}
+// 1.6 Model Type Definitions (Used when calling User.findOne() or User.create())
+export type UserModel = Model<IUser> & Model<IPatient> & Model<ICaregiver>; 
+export type PatientModel = Model<IPatient>;
+export type CaregiverModel = Model<ICaregiver>;
 
 // --- 2. DEFINE SCHEMAS AND MODELS ---
 
-const baseOptions: SchemaOptions = { discriminatorKey: "role", collection: "users" };
-// Base User Schema
-const userSchema = new mongoose.Schema<IUser, UserModel>(
+const baseOptions: SchemaOptions = { discriminatorKey: "role", collection: "users", timestamps: true };
+
+// Base User Schema uses IMongooseBaseUser
+const userSchema = new mongoose.Schema<IMongooseBaseUser, UserModel>(
     {
         name: { type: String, required: true },
         email: {
@@ -68,32 +65,36 @@ const userSchema = new mongoose.Schema<IUser, UserModel>(
             unique: true,
             validate: [validator.isEmail, "Enter a valid email"]
         },
-        password: { type: String, required: true, select: false }, // Added select: false for security
+        password: { type: String, required: true, select: false },
+        role: { type: String, required: true, enum: ["user", "patient", "caregiver","admin"], default: "user" },
         verificationToken: { type: String },
         isVerified: { type: Boolean, default: false },
         passwordResetToken: String,
         passwordResetExpires: Date,
     },
-    { ...baseOptions, timestamps: true }
+    baseOptions
 );
 
 // Pre-Save Hook for Password Hashing
 userSchema.pre("save", async function (next) {
-    const user = this as IUser; // Cast 'this' to IUser to access custom methods/fields
+    const user = this as IMongooseBaseUser; 
     if (!user.isModified("password")) return next();
     
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password!, salt); // Use non-null assertion or conditional check
+    if (user.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+    }
     next();
 });
 
 // Methods (Match Password)
-userSchema.methods.matchPassword = async function (this: IUser, enteredPassword: string): Promise<boolean> {
-    return await bcrypt.compare(enteredPassword, this.password!);
+userSchema.methods.matchPassword = async function (this: IMongooseBaseUser, enteredPassword: string): Promise<boolean> {
+    if (!this.password) return false;
+    return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Export Base Model
-export const User = mongoose.model<IUser, UserModel>("User", userSchema);
+export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSchema);
 
 // --- DISCRIMINATORS ---
 
@@ -101,7 +102,7 @@ export const User = mongoose.model<IUser, UserModel>("User", userSchema);
 const patientSchema = new mongoose.Schema<IPatientProperties>({
     dateOfBirth: { type: Date },
     medicalNotes: { type: String }
-}, { timestamps: true });
+}); 
 
 export const Patient = User.discriminator<IPatient, PatientModel>("patient", patientSchema);
 
@@ -122,8 +123,8 @@ const caregiverSchema = new mongoose.Schema<ICaregiverProperties>({
             message: props => `${props.value} is not a valid phone number!`
         }
     },
-    rule: { type: String, enum: ["admin", "user"], default: "user" },
+   // rule: { type: String, enum: ["admin", "user"], default: "user" },
     patients: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
-}, { timestamps: true });
+});
 
 export const Caregiver = User.discriminator<ICaregiver, CaregiverModel>("caregiver", caregiverSchema);

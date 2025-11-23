@@ -10,7 +10,8 @@
     "rootDir": "./src",
      "allowJs": true,
     "checkJs": true,
-     "noEmit": true
+     "noEmit": true,
+     "allowImportingTsExtensions":true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
