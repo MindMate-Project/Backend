@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken"
- const generateToken = (id: string | number):string => {
+import { Types } from "mongoose";
+ const generateToken = (id: string | number | Types.ObjectId):string => {
     if(! process.env.JWT_SECRET_KEY)
     {
         throw new Error("JWT_SECRET_KEY is not defined. Please set it in your environment variables.");
