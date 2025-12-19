@@ -14,5 +14,5 @@ app.use("/api/memories", memoryItemRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {
-  res.send(`API is running on port ${port}`);
+  res.send(`API is running on port`);
 });

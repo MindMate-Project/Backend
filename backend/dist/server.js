@@ -17,4 +17,6 @@ app.use((0, cors_1.default)());
 app.use("/api/auth", authRoutes_1.default);
 app.use("/api/memories", memoryItemRoutes_1.default);
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.get("/", (req, res) => {
+    res.send(`API is running on port`);
+});
