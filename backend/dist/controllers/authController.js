@@ -44,7 +44,7 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
     user.verificationToken = verificationToken;
     await user.save();
     // Send verification email
-    const verificationUrl = `http://localhost:5000/api/users/verify/${verificationToken}`;
+    const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
     const message = `
         <h3>Hello ${user.name}</h3>
         <p>Thank you for registering. Click the link below to activate your account:</p>
@@ -92,7 +92,7 @@ exports.verifyUserAccount = (0, express_async_handler_1.default)(async (req, res
 exports.loginUser = (0, express_async_handler_1.default)(async (req, res) => {
     const { email, password } = req.body;
     // 1. Find user (Mongoose will return IMongooseBaseUser)
-    const user = await User_1.User.findOne({ email });
+    const user = await User_1.User.findOne({ email }).select('+password');
     // 2. Check existence and password match
     if (user && (await user.matchPassword(password))) {
         if (!user.isVerified) {

@@ -85,9 +85,12 @@ userSchema.pre<IMongooseBaseUser>("save", async function (next) {
 
 // ---- METHODS ----
 
-userSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
-    return bcrypt.compare(enteredPassword, this.password ?? "");
+userSchema.methods.matchPassword = async function (enteredPassword: string) {
+    if (!this.password) throw new Error("Password is not set for this user");
+    return await bcrypt.compare(enteredPassword, this.password);
 };
+
+
 
 // ---- BASE MODEL ----
 

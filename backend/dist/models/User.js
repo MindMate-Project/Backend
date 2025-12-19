@@ -74,7 +74,9 @@ userSchema.pre("save", async function (next) {
 });
 // ---- METHODS ----
 userSchema.methods.matchPassword = async function (enteredPassword) {
-    return bcryptjs_1.default.compare(enteredPassword, this.password ?? "");
+    if (!this.password)
+        throw new Error("Password is not set for this user");
+    return await bcryptjs_1.default.compare(enteredPassword, this.password);
 };
 // ---- BASE MODEL ----
 exports.User = mongoose_1.default.model("User", userSchema);
