@@ -1,7 +1,7 @@
 import { User, Patient, Caregiver, IMongooseBaseUser, IPatient, ICaregiver } from "../models/User";
 import asyncHandler from "express-async-handler";
 import generateToken from "../utils/generateToken";
-import { sendEmail } from "../utils/sendEmail";
+// import { sendEmail } from "../utils/sendEmail"; // مؤقتًا معلّق
 import crypto from "crypto";
 import mongoose from "mongoose"
 import { Request, Response, NextFunction } from 'express';
@@ -78,7 +78,8 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, RegisterBod
     user.verificationToken = verificationToken;
     await user.save(); 
 
-    // Send verification email
+    // --- مؤقتًا تم تعطيل إرسال الإيميل ---
+    /*
     const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
     const message = `
         <h3>Hello ${user.name}</h3>
@@ -98,6 +99,20 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, RegisterBod
         res.status(500);
         throw new Error("User registered, but email verification failed to send.");
     }
+    */
+
+    // الرد المباشر للاختبار بدون إيميل
+    res.status(201).json({
+        message: "User registered successfully. (Email sending skipped for testing)",
+        data: { 
+            user: { 
+                name: user.name, 
+                email: user.email, 
+                role: user.role, 
+                verificationToken: user.verificationToken // ممكن تستخدمه لتفعيل الحساب
+            } 
+        }
+    });
 });
 
 // ----------------------------------------------------------------------
@@ -196,7 +211,8 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
 
     await user.save();
 
-    // 4. Send the code to the user's email
+    // --- مؤقتًا تم تعطيل إرسال الإيميل ---
+    /*
     try {
         const message = `
             <h3>Hello ${user.name}</h3>
@@ -220,6 +236,15 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
         res.status(500);
         throw new Error("Failed to send the password reset email.");
     }
+    */
+
+    // الرد المباشر للاختبار بدون إيميل
+    res.status(200).json({
+        message: "Password reset code generated (Email sending skipped for testing).",
+        data: { 
+            resetCode // ترجع الكود مباشرة للاختبار في Postman
+        }
+    });
 });
 
 // ----------------------------------------------------------------------

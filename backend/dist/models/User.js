@@ -84,7 +84,38 @@ exports.User = mongoose_1.default.model("User", userSchema);
 // Patient
 const patientSchema = new mongoose_1.Schema({
     dateOfBirth: Date,
-    medicalNotes: String
+    medicalNotes: String,
+    known_people: [
+        {
+            name: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            relationship: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            average_embedding: {
+                type: [Number],
+                required: true
+            },
+            embeddings_count: {
+                type: Number,
+                required: true,
+                default: 1
+            },
+            created_at: {
+                type: Date,
+                default: Date.now
+            },
+            updated_at: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
 });
 exports.Patient = exports.User.discriminator("patient", patientSchema);
 // Caregiver
