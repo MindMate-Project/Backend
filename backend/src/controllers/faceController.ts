@@ -9,21 +9,11 @@ import { Patient } from "../models/User";
  */
 const normalize = (v: string) => v.trim().toLowerCase();
 
-/**
- * PYTHON AI SERVICE BASE URL
- * example: http://localhost:8000
- */
-const PYTHON_AI_URL = process.env.PYTHON_AI_URL || "http://localhost:8000";
+const PYTHON_AI_URL = process.env.PYTHON_AI_URL;
 
-/**
- * -------------------------------
- * REGISTER / TRAIN FACE
- * -------------------------------
- * Adds a new known person OR updates average embedding
- */
 export const registerPatientFace = asyncHandler(
   async (req, res: Response) => {
-        const user = req.user; // ✅ WORKS
+        const user = req.user; 
         
     if (!user || user.role !== "patient") {
       res.status(403);
@@ -57,9 +47,6 @@ export const registerPatientFace = asyncHandler(
         normalize(p.relationship) === normRel
     );
 
-    /**
-     * Build form data for Python
-     */
     const formData = new FormData();
     formData.append("file", req.file.buffer, {
       filename: req.file.originalname,
@@ -68,9 +55,7 @@ export const registerPatientFace = asyncHandler(
 
     let pythonResponse;
 
-    // ---------------------------------
     // CASE A: Person already exists
-    // ---------------------------------
     if (knownPerson) {
       formData.append(
         "old_embedding",
@@ -99,9 +84,7 @@ export const registerPatientFace = asyncHandler(
       knownPerson.updated_at = new Date();
 
     } else {
-      // ---------------------------------
       // CASE B: New person
-      // ---------------------------------
       pythonResponse = await axios.post(
         `${PYTHON_AI_URL}/face/extract`,
         formData,
@@ -171,7 +154,6 @@ export const identifyPatientByFace = asyncHandler(
       embedding: p.average_embedding
     }));
 
-    // Build form data for Python
     const formData = new FormData();
     formData.append("file", req.file.buffer, {
       filename: req.file.originalname,

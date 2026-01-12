@@ -12,19 +12,9 @@ const User_1 = require("../models/User");
  * Helper: normalize identity fields
  */
 const normalize = (v) => v.trim().toLowerCase();
-/**
- * PYTHON AI SERVICE BASE URL
- * example: http://localhost:8000
- */
-const PYTHON_AI_URL = process.env.PYTHON_AI_URL || "http://localhost:8000";
-/**
- * -------------------------------
- * REGISTER / TRAIN FACE
- * -------------------------------
- * Adds a new known person OR updates average embedding
- */
+const PYTHON_AI_URL = process.env.PYTHON_AI_URL;
 exports.registerPatientFace = (0, express_async_handler_1.default)(async (req, res) => {
-    const user = req.user; // ✅ WORKS
+    const user = req.user;
     if (!user || user.role !== "patient") {
         res.status(403);
         throw new Error("Only patients can register faces");
@@ -47,18 +37,13 @@ exports.registerPatientFace = (0, express_async_handler_1.default)(async (req, r
     const normRel = normalize(relationship);
     const knownPerson = patient.known_people?.find((p) => normalize(p.name) === normName &&
         normalize(p.relationship) === normRel);
-    /**
-     * Build form data for Python
-     */
     const formData = new form_data_1.default();
     formData.append("file", req.file.buffer, {
         filename: req.file.originalname,
         contentType: req.file.mimetype
     });
     let pythonResponse;
-    // ---------------------------------
     // CASE A: Person already exists
-    // ---------------------------------
     if (knownPerson) {
         formData.append("old_embedding", JSON.stringify(knownPerson.average_embedding));
         formData.append("count", String(knownPerson.embeddings_count));
@@ -73,9 +58,7 @@ exports.registerPatientFace = (0, express_async_handler_1.default)(async (req, r
         knownPerson.updated_at = new Date();
     }
     else {
-        // ---------------------------------
         // CASE B: New person
-        // ---------------------------------
         pythonResponse = await axios_1.default.post(`${PYTHON_AI_URL}/face/extract`, formData, { headers: formData.getHeaders() });
         const { embedding, status } = pythonResponse.data;
         if (status !== "ok") {
@@ -97,14 +80,8 @@ exports.registerPatientFace = (0, express_async_handler_1.default)(async (req, r
         message: "Face registered successfully"
     });
 });
-/**
- * -------------------------------
- * IDENTIFY FACE
- * -------------------------------
- * Matches a captured face against patient's known people
- */
+//  * IDENTIFY FACE
 exports.identifyPatientByFace = (0, express_async_handler_1.default)(async (req, res) => {
-    // ✅ helper FIRST (important)
     const normalize = (v) => v.trim().toLowerCase();
     const user = req.user;
     if (!user || user.role !== "patient") {
@@ -124,40 +101,29 @@ exports.identifyPatientByFace = (0, express_async_handler_1.default)(async (req,
         res.status(400);
         throw new Error("No known people registered");
     }
-    // -----------------------------
     // Build candidates array
-    // -----------------------------
     const candidates = patient.known_people.map((p) => ({
         user_id: `${normalize(p.name)}::${normalize(p.relationship)}`,
         embedding: p.average_embedding
     }));
-    // -----------------------------
-    // Build form data for Python
-    // -----------------------------
     const formData = new form_data_1.default();
     formData.append("file", req.file.buffer, {
         filename: req.file.originalname,
         contentType: req.file.mimetype
     });
     formData.append("candidates", JSON.stringify(candidates));
-    // -----------------------------
     // Call Python service
-    // -----------------------------
     const pythonResponse = await axios_1.default.post(`${PYTHON_AI_URL}/face/identify`, formData, { headers: formData.getHeaders() });
     const { user_id, score } = pythonResponse.data;
     const bestScore = score ?? 0;
-    // -----------------------------
     // Match result back to Mongo
-    // -----------------------------
     let matchedPerson = null;
     if (user_id) {
         const [nameKey, relKey] = user_id.split("::").map(normalize);
         matchedPerson = patient.known_people.find((p) => normalize(p.name) === nameKey &&
             normalize(p.relationship) === relKey);
     }
-    // -----------------------------
     // Response
-    // -----------------------------
     res.status(200).json({
         success: true,
         identified: bestScore >= 0.72 && !!matchedPerson,

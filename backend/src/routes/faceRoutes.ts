@@ -12,20 +12,16 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }
 });
-// -----------------------------
-// Register Patient Face
-// -----------------------------
+
 router.post(
-    "/patient/register-face",
+    "/register-face",
     protect,
     upload.single("image"),
     registerPatientFace
 );
-// -----------------------------
-// Identify Patient Face
-// -----------------------------
+
 router.post(
-    "/patient/identify-face",
+    "/identify-face",
     protect,
     upload.single("image"),
     identifyPatientByFace
