@@ -7,7 +7,7 @@ exports.resetPassword = exports.forgotPassword = exports.loginUser = exports.ver
 const User_1 = require("../models/User");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const generateToken_1 = __importDefault(require("../utils/generateToken"));
-// import { sendEmail } from "../utils/sendEmail"; // مؤقتًا معلّق
+const sendEmail_1 = require("../utils/sendEmail");
 const crypto_1 = __importDefault(require("crypto"));
 // --- CONTROLLERS ---
 /**
@@ -43,40 +43,25 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
     // Store the verificationToken
     user.verificationToken = verificationToken;
     await user.save();
-    // --- مؤقتًا تم تعطيل إرسال الإيميل ---
-    /*
+    // Send verification email
     const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
     const message = `
         <h3>Hello ${user.name}</h3>
         <p>Thank you for registering. Click the link below to activate your account:</p>
         <a href="${verificationUrl}">Activate Account</a>
     `;
-    
     try {
-        await sendEmail(user.email, "Account Verification", message);
-
+        await (0, sendEmail_1.sendEmail)(user.email, "Account Verification", message);
         res.status(201).json({
             message: "User registered successfully. Please check your email to activate your account.",
             data: { user: { name: user.name, email: user.email, role: user.role } }
         });
-    } catch (emailError) {
+    }
+    catch (emailError) {
         console.error(emailError);
         res.status(500);
         throw new Error("User registered, but email verification failed to send.");
     }
-    */
-    // الرد المباشر للاختبار بدون إيميل
-    res.status(201).json({
-        message: "User registered successfully. (Email sending skipped for testing)",
-        data: {
-            user: {
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                verificationToken: user.verificationToken // ممكن تستخدمه لتفعيل الحساب
-            }
-        }
-    });
 });
 // ----------------------------------------------------------------------
 /**
@@ -154,8 +139,7 @@ exports.forgotPassword = (0, express_async_handler_1.default)(async (req, res) =
     // 3. Set an expiration time (10 minutes)
     user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
-    // --- مؤقتًا تم تعطيل إرسال الإيميل ---
-    /*
+    // 4. Send the code to the user's email
     try {
         const message = `
             <h3>Hello ${user.name}</h3>
@@ -163,30 +147,20 @@ exports.forgotPassword = (0, express_async_handler_1.default)(async (req, res) =
             <h2>${resetCode}</h2>
             <p>This code will expire in 10 minutes.</p>
         `;
-        await sendEmail(user.email, "Password Reset Code", message);
-
+        await (0, sendEmail_1.sendEmail)(user.email, "Password Reset Code", message);
         res.status(200).json({
             message: "Password reset code sent to your email.",
         });
-
-    } catch (error) {
+    }
+    catch (error) {
         // Clear the token fields if email fails
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save();
-
         console.error(error);
         res.status(500);
         throw new Error("Failed to send the password reset email.");
     }
-    */
-    // الرد المباشر للاختبار بدون إيميل
-    res.status(200).json({
-        message: "Password reset code generated (Email sending skipped for testing).",
-        data: {
-            resetCode // ترجع الكود مباشرة للاختبار في Postman
-        }
-    });
 });
 // ----------------------------------------------------------------------
 /**

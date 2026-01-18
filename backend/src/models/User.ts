@@ -45,7 +45,6 @@ export interface IPatient extends IMongooseBaseUser, IPatientProperties {
     known_people: IKnownPerson[];
 }
 
-export interface IPatient extends IMongooseBaseUser, IPatientProperties {}
 export interface ICaregiver extends IMongooseBaseUser, ICaregiverProperties {}
 
 // ---- MODELS ----
