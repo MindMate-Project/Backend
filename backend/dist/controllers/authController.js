@@ -43,25 +43,29 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
     // Store the verificationToken
     user.verificationToken = verificationToken;
     await user.save();
+    res.status(201).json({
+        message: "User registered successfully.",
+        data: { user: { name: user.name, email: user.email, role: user.role } }
+    });
+    // ________________________________________________________ Email verification pused for testing ________________________________________________________
     // Send verification email
-    const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
-    const message = `
-        <h3>Hello ${user.name}</h3>
-        <p>Thank you for registering. Click the link below to activate your account:</p>
-        <a href="${verificationUrl}">Activate Account</a>
-    `;
-    try {
-        await (0, sendEmail_1.sendEmail)(user.email, "Account Verification", message);
-        res.status(201).json({
-            message: "User registered successfully. Please check your email to activate your account.",
-            data: { user: { name: user.name, email: user.email, role: user.role } }
-        });
-    }
-    catch (emailError) {
-        console.error(emailError);
-        res.status(500);
-        throw new Error("User registered, but email verification failed to send.");
-    }
+    // const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
+    // const message = `
+    //     <h3>Hello ${user.name}</h3>
+    //     <p>Thank you for registering. Click the link below to activate your account:</p>
+    //     <a href="${verificationUrl}">Activate Account</a>
+    // `;
+    // try {
+    //     await sendEmail(user.email, "Account Verification", message);
+    //     res.status(201).json({
+    //         message: "User registered successfully. Please check your email to activate your account.",
+    //         data: { user: { name: user.name, email: user.email, role: user.role } }
+    //     });
+    // } catch (emailError) {
+    //     console.error(emailError);
+    //     res.status(500);
+    //     throw new Error("User registered, but email verification failed to send.");
+    // }
 });
 // ----------------------------------------------------------------------
 /**
@@ -95,10 +99,10 @@ exports.loginUser = (0, express_async_handler_1.default)(async (req, res) => {
     const user = await User_1.User.findOne({ email }).select('+password');
     // 2. Check existence and password match
     if (user && (await user.matchPassword(password))) {
-        if (!user.isVerified) {
-            res.status(401);
-            throw new Error('Please verify your account first. Check your email for the activation link.');
-        }
+        // if (!user.isVerified) {
+        //     res.status(401); 
+        //     throw new Error('Please verify your account first. Check your email for the activation link.');
+        // }
         const token = (0, generateToken_1.default)(user._id);
         res.json({
             message: "Login successful",

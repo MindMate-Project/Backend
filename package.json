@@ -1,13 +1,27 @@
 {
+  "name": "alzaheimer-backend",
+  "version": "1.0.0",
+  "description": "Alzahimar Backend API",
+  "main": "backend/dist/server.js",
+  "type": "commonjs",
+  "license": "ISC",
+  "scripts": {
+    "build": "tsc",
+    "start": "node backend/dist/server.js",
+    "dev": "nodemon --watch backend/src --ext ts --exec \"npm run build && node backend/dist/server.js\""
+  },
   "dependencies": {
+    "axios": "^1.13.4",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
+    "form-data": "^4.0.5",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "validator": "^13.15.20"
   },
@@ -18,23 +32,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongodb": "^4.0.7",
     "@types/mongoose": "^5.11.97",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
     "@types/nodemailer": "^7.0.4",
     "@types/validator": "^13.15.10",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
-  },
-  "type": "commonjs",
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "nodemon dist/server.js"
-  },
-  "name": "y",
-  "version": "1.0.0",
-  "main": "backend/dist/server.js",
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  }
 }

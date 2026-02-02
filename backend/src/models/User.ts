@@ -32,7 +32,19 @@ export interface ICaregiverProperties {
     patients: Types.ObjectId[];
 }
 
-export interface IPatient extends IMongooseBaseUser, IPatientProperties {}
+export interface IKnownPerson {
+    name: string;
+    relationship: string;
+    average_embedding: number[];
+    embeddings_count: number;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface IPatient extends IMongooseBaseUser, IPatientProperties {
+    known_people: IKnownPerson[];
+}
+
 export interface ICaregiver extends IMongooseBaseUser, ICaregiverProperties {}
 
 // ---- MODELS ----
@@ -101,7 +113,43 @@ export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSch
 // Patient
 const patientSchema = new Schema({
     dateOfBirth: Date,
-    medicalNotes: String
+    medicalNotes: String,
+
+    known_people: [
+        {
+            name: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            relationship: {
+                type: String,
+                required: true,
+                trim: true
+            },
+
+            average_embedding: {
+                type: [Number], 
+                required: true
+            },
+
+            embeddings_count: {
+                type: Number,
+                required: true,
+                default: 1
+            },
+
+            created_at: {
+                type: Date,
+                default: Date.now
+            },
+
+            updated_at: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
 });
 
 export const Patient = User.discriminator<IPatient, PatientModel>("patient", patientSchema);
