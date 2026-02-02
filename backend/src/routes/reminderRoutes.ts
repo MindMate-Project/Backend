@@ -6,7 +6,7 @@ import {
   updateReminder,
   deleteReminder,
 } from "../controllers/reminderController";
-
+import { protect } from "../middlewares/authMiddleware";  
 const router = express.Router();
 
 // Create reminder
@@ -19,7 +19,7 @@ router.get("/patient/:patientId", getPatientReminders);
 router
   .route("/:id")
   .get(getReminderById)
-  .put(updateReminder)
-  .delete(deleteReminder);
+  .put(protect,updateReminder)
+  .delete(protect,deleteReminder);
 
 export default router;
