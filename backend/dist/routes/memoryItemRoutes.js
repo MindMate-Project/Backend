@@ -5,13 +5,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const memoryItemController_1 = require("../controllers/memoryItemController");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const authorize_1 = require("../middlewares/authorize");
 const router = express_1.default.Router();
-router.post("/", memoryItemController_1.createMemory);
-router.get("/search", memoryItemController_1.searchMemoryByTags);
-router.get("/patient/:patientId", memoryItemController_1.getPatientMemories);
+// Create memory (caregiver or admin)
+router.post("/", authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), memoryItemController_1.createMemory);
+// Search memories
+router.get("/search", authMiddleware_1.protect, (0, authorize_1.authorize)("patient", "caregiver", "admin"), memoryItemController_1.searchMemoryByTags);
+// Get memories for a patient
+router.get("/patient/:patientId", authMiddleware_1.protect, (0, authorize_1.authorize)("patient", "caregiver", "admin"), memoryItemController_1.getPatientMemories);
 router
     .route("/:id")
-    .get(memoryItemController_1.getMemoryById)
-    .put(memoryItemController_1.updateMemory)
-    .delete(memoryItemController_1.deleteMemory);
+    .get(authMiddleware_1.protect, (0, authorize_1.authorize)("patient", "caregiver", "admin"), memoryItemController_1.getMemoryById)
+    .put(authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), memoryItemController_1.updateMemory)
+    .delete(authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), memoryItemController_1.deleteMemory);
 exports.default = router;

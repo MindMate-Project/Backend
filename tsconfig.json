@@ -13,6 +13,6 @@
      "noEmit": false,
      //"allowImportingTsExtensions":true
   },
-  "include": ["backend/src/**/*"],
+  "include": ["backend/src/**/*", "backend/src/types/**/*"],
   "exclude": ["node_modules"]
 }

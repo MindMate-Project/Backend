@@ -5,17 +5,54 @@ import {
   getMemoryById,
   updateMemory,
   deleteMemory,
-  searchMemoryByTags
+  searchMemoryByTags,
 } from "../controllers/memoryItemController";
 
+import { protect } from "../middlewares/authMiddleware";
+import { authorize } from "../middlewares/authorize";
+
 const router = express.Router();
-router.post("/", createMemory);
-router.get("/search", searchMemoryByTags);
-router.get("/patient/:patientId", getPatientMemories);
+
+// Create memory (caregiver or admin)
+router.post(
+  "/",
+  protect,
+  authorize("caregiver", "admin"),
+  createMemory
+);
+
+// Search memories
+router.get(
+  "/search",
+  protect,
+  authorize("patient", "caregiver", "admin"),
+  searchMemoryByTags
+);
+
+// Get memories for a patient
+router.get(
+  "/patient/:patientId",
+  protect,
+  authorize("patient", "caregiver", "admin"),
+  getPatientMemories
+);
 
 router
   .route("/:id")
-  .get(getMemoryById)
-  .put(updateMemory)
-  .delete(deleteMemory);
+  .get(
+    protect,
+    authorize("patient", "caregiver", "admin"),
+    getMemoryById
+  )
+  .put(
+    protect,
+    authorize("caregiver", "admin"),
+    updateMemory
+  )
+  .delete(
+    protect,
+    authorize("caregiver", "admin"),
+    deleteMemory
+  );
+
 export default router;

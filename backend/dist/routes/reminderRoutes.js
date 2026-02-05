@@ -6,15 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const reminderController_1 = require("../controllers/reminderController");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
+const authorize_1 = require("../middlewares/authorize");
 const router = express_1.default.Router();
-// Create reminder
-router.post("/", reminderController_1.createReminder);
-// Get all reminders for a patient
-router.get("/patient/:patientId", reminderController_1.getPatientReminders);
-// Get / Update / Delete reminder by id
+router.post("/", authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), reminderController_1.createReminder);
+router.get("/patient/:patientId", authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "patient", "admin"), reminderController_1.getPatientReminders);
 router
     .route("/:id")
-    .get(reminderController_1.getReminderById)
-    .put(authMiddleware_1.protect, reminderController_1.updateReminder)
-    .delete(authMiddleware_1.protect, reminderController_1.deleteReminder);
+    .get(authMiddleware_1.protect, reminderController_1.getReminderById)
+    .put(authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), reminderController_1.updateReminder)
+    .delete(authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "admin"), reminderController_1.deleteReminder);
 exports.default = router;
