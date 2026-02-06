@@ -1,18 +1,27 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+
+    "rootDir": "backend/src",
+    "outDir": "backend/dist",
+
     "strict": true,
+
     "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    "types": ["node", "express"],
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./backend/dist",
-    "rootDir": "./backend/src",
-     "allowJs": true,
-    "checkJs": true,
-     "noEmit": false,
-     //"allowImportingTsExtensions":true
+
+    "noEmit": false,
+
+    "allowJs": false,
+    "checkJs": false
   },
-  "include": ["backend/src/**/*", "backend/src/types/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["backend/src/**/*"],
+  "exclude": ["node_modules", "backend/dist"]
 }
