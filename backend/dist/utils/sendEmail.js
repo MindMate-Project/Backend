@@ -48,7 +48,7 @@ const sendEmail = async (to, subject, html) => {
     sendSmtpEmail.htmlContent = html;
     sendSmtpEmail.sender = {
         name: "Alzahimar",
-        email: "your_verified_email@gmail.com",
+        email: "mohammedhossam343@gmail.com",
     };
     try {
         await apiInstance.sendTransacEmail(sendSmtpEmail);

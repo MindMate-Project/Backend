@@ -89,17 +89,20 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
  */
 exports.verifyUserAccount = (0, express_async_handler_1.default)(async (req, res) => {
     const { verificationToken } = req.params;
-    // Find user by token
     const user = await User_1.User.findOne({ verificationToken });
     if (!user) {
-        res.status(400);
-        throw new Error("Invalid verification token");
+        res.status(200).json({
+            message: "Account already verified or link expired."
+        });
+        return;
     }
-    // Verify user
     user.isVerified = true;
     user.verificationToken = undefined;
     await user.save();
-    res.status(200).json({ message: "Account verified successfully. You can now log in." });
+    res.status(200).json({
+        message: "Account verified successfully. You can now log in."
+    });
+    return;
 });
 // ----------------------------------------------------------------------
 /**

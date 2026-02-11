@@ -129,24 +129,33 @@ export const registerUser = asyncHandler(
  * @route GET /api/users/verify/:verificationToken
  * @access Public
  */
-export const verifyUserAccount = asyncHandler(async (req: Request<{ verificationToken: string }>, res: Response) => {
+export const verifyUserAccount = asyncHandler(
+  async (
+    req: Request<{ verificationToken: string }>,
+    res: Response
+  ): Promise<void> => {
+
     const { verificationToken } = req.params;
 
-    // Find user by token
     const user = await User.findOne({ verificationToken });
 
     if (!user) {
-        res.status(400);
-        throw new Error("Invalid verification token");
+      res.status(200).json({
+        message: "Account already verified or link expired."
+      });
+      return;
     }
 
-    // Verify user
     user.isVerified = true;
-    user.verificationToken = undefined; 
+    user.verificationToken = undefined;
     await user.save();
 
-    res.status(200).json({ message: "Account verified successfully. You can now log in." });
-});
+    res.status(200).json({
+      message: "Account verified successfully. You can now log in."
+    });
+    return;
+  }
+);
 
 // ----------------------------------------------------------------------
 
