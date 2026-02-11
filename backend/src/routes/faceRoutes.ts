@@ -18,7 +18,7 @@ router.post(
   "/register-face",
   protect,
   authorize("caregiver" , "patient"),
-  upload.single("image"),
+  upload.single("file"),
   registerPatientFace
 );
 
@@ -26,7 +26,7 @@ router.post(
   "/identify-face",
   protect,
   authorize("patient" , "caregiver"),
-  upload.single("image"),
+  upload.single("file"),
   identifyPatientByFace
 );
 

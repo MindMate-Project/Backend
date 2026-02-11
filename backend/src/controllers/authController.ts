@@ -45,65 +45,82 @@ interface ResetPasswordBody {
  * @route POST /api/users/register
  * @access Public
  */
-export const registerUser = asyncHandler(async (req: Request<{}, {}, RegisterBody>, res: Response) => {
+export const registerUser = asyncHandler(
+  async (req: Request<{}, {}, RegisterBody>, res: Response): Promise<void> => {
     const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes } = req.body;
 
     if (!password) {
-        res.status(400);
-        throw new Error("Password is required for registration.");
+      res.status(400);
+      throw new Error("Password is required for registration.");
     }
 
-    // Check if the user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-        res.status(400);
-        throw new Error("User already exists");
+      res.status(400);
+      throw new Error("User already exists");
     }
 
     let user: IMongooseBaseUser;
 
-    // Use Discriminators to create the specific user type
     if (role === "patient") {
-        user = await Patient.create({ name, email, password, dateOfBirth, medicalNotes, role: 'patient' } as IPatient);
+      user = await Patient.create({
+        name,
+        email,
+        password,
+        dateOfBirth,
+        medicalNotes,
+        role: "patient",
+      } as IPatient);
     } else if (role === "caregiver") {
-        user = await Caregiver.create({ name, email, password, relation, phone, role: 'caregiver' } as ICaregiver);
+      user = await Caregiver.create({
+        name,
+        email,
+        password,
+        relation,
+        phone,
+        role: "caregiver",
+      } as ICaregiver);
     } else {
-        user = await User.create({ name, email, password, role: 'user' });
+      user = await User.create({ name, email, password, role: "user" });
     }
 
-    // Generate a random verification token
     const verificationToken = crypto.randomBytes(20).toString("hex");
-
-    // Store the verificationToken
     user.verificationToken = verificationToken;
-    await user.save(); 
+    await user.save();
 
-    res.status(201).json({
-        message: "User registered successfully.",
-        data: { user: { name: user.name, email: user.email, role: user.role } }
-    });
-    // ________________________________________________________ Email verification pused for testing ________________________________________________________
-    // Send verification email
-    // const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify/${verificationToken}`;
-    // const message = `
-    //     <h3>Hello ${user.name}</h3>
-    //     <p>Thank you for registering. Click the link below to activate your account:</p>
-    //     <a href="${verificationUrl}">Activate Account</a>
-    // `;
-    
-    // try {
-    //     await sendEmail(user.email, "Account Verification", message);
+    const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify/${verificationToken}`;
 
-    //     res.status(201).json({
-    //         message: "User registered successfully. Please check your email to activate your account.",
-    //         data: { user: { name: user.name, email: user.email, role: user.role } }
-    //     });
-    // } catch (emailError) {
-    //     console.error(emailError);
-    //     res.status(500);
-    //     throw new Error("User registered, but email verification failed to send.");
-    // }
-});
+    const message = `
+        <h3>Hello ${user.name}</h3>
+        <p>Thank you for registering. Click the link below to activate your account:</p>
+        <a href="${verificationUrl}">Activate Account</a>
+    `;
+
+    try {
+      await sendEmail(user.email, "Account Verification", message);
+
+      res.status(201).json({
+        message: "User registered successfully. Please check your email.",
+        data: {
+          user: {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+        },
+      });
+      return;
+
+    } catch (emailError) {
+      console.error(emailError);
+
+      res.status(500).json({
+        message: "User created but failed to send verification email.",
+      });
+      return;
+    }
+  }
+);
 
 // ----------------------------------------------------------------------
 
@@ -135,7 +152,7 @@ export const verifyUserAccount = asyncHandler(async (req: Request<{ verification
 
 /**
  * @desc Authenticate a user and get token
- * @route POST /api/users/login
+ * @route POST /api/auth/login
  * @access Public
  */
 export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, res: Response) => {
@@ -147,10 +164,10 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
     // 2. Check existence and password match
     if (user && (await user.matchPassword(password))) {
         
-        // if (!user.isVerified) {
-        //     res.status(401); 
-        //     throw new Error('Please verify your account first. Check your email for the activation link.');
-        // }
+        if (!user.isVerified) {
+            res.status(401); 
+            throw new Error('Please verify your account first. Check your email for the activation link.');
+        }
 
         const token = generateToken(user._id as mongoose.Types.ObjectId);
         res.json({
@@ -174,7 +191,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
 
 /**
  * @desc Send password reset code to user email
- * @route POST /api/users/forgot-password
+ * @route POST /api/auth/forgot-password
  * @access Public
  */
 export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPasswordBody>, res: Response) => {
@@ -231,7 +248,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
 
 /**
  * @desc Reset user password using the code
- * @route POST /api/users/reset-password
+ * @route POST /api/auth/reset-password
  * @access Public
  */
 export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {

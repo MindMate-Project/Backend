@@ -13,6 +13,6 @@ const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }
 });
-router.post("/register-face", authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "patient"), upload.single("image"), faceController_1.registerPatientFace);
-router.post("/identify-face", authMiddleware_1.protect, (0, authorize_1.authorize)("patient", "caregiver"), upload.single("image"), faceController_1.identifyPatientByFace);
+router.post("/register-face", authMiddleware_1.protect, (0, authorize_1.authorize)("caregiver", "patient"), upload.single("file"), faceController_1.registerPatientFace);
+router.post("/identify-face", authMiddleware_1.protect, (0, authorize_1.authorize)("patient", "caregiver"), upload.single("file"), faceController_1.identifyPatientByFace);
 exports.default = router;
