@@ -5,12 +5,16 @@ export const sendEmail = async (
   subject: string,
   html: string
 ): Promise<void> => {
-
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
 
+  console.log("EMAIL_USER:", emailUser);
+  console.log("EMAIL_PASS exists:", !!emailPass);
+
   if (!emailUser || !emailPass) {
-    throw new Error("Missing required environment variables: EMAIL_USER or EMAIL_PASS.");
+    throw new Error(
+      "Missing required environment variables: EMAIL_USER or EMAIL_PASS."
+    );
   }
 
   const transporter: Transporter = nodemailer.createTransport({
@@ -27,22 +31,37 @@ export const sendEmail = async (
   });
 
   const mailOptions = {
-    from: emailUser,
+    from: `"Alzahimar" <${emailUser}>`,
     to,
     subject,
     html,
   };
 
   try {
+    console.log("🔄 Verifying SMTP connection...");
 
     await transporter.verify();
     console.log("✅ SMTP server is ready");
 
-    await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully to:", to);
+    console.log("📤 Sending email...");
 
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw new Error("Failed to send email.");
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("Email sent successfully!");
+    console.log("'essage ID:", info.messageId);
+    console.log("Sent to:", to);
+  } catch (error: any) {
+    console.error("FULL EMAIL ERROR:");
+    console.error(error);
+
+    if (error?.message) {
+      console.error("ERROR MESSAGE:", error.message);
+    }
+
+    if (error?.code) {
+      console.error("ERROR CODE:", error.code);
+    }
+
+    throw error; 
   }
 };
