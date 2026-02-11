@@ -13,7 +13,9 @@ const sendEmail = async (to, subject, html) => {
         throw new Error("Missing required environment variables: EMAIL_USER or EMAIL_PASS.");
     }
     const transporter = nodemailer_1.default.createTransport({
-        service: "Gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
             user: emailUser,
             pass: emailPass
