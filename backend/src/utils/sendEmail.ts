@@ -26,7 +26,7 @@ export const sendEmail = async (
   sendSmtpEmail.htmlContent = html;
   sendSmtpEmail.sender = {
     name: "Alzahimar",
-    email: "your_verified_email@gmail.com", 
+    email: "mohammedhossam343@gmail.com", 
   };
 
   try {
