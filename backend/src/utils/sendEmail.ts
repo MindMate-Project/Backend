@@ -1,67 +1,39 @@
-import nodemailer, { Transporter } from "nodemailer";
+import * as Brevo from '@getbrevo/brevo';
 
 export const sendEmail = async (
   to: string,
   subject: string,
   html: string
 ): Promise<void> => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
 
-  console.log("EMAIL_USER:", emailUser);
-  console.log("EMAIL_PASS exists:", !!emailPass);
+  const apiKey = process.env.BREVO_API_KEY;
 
-  if (!emailUser || !emailPass) {
-    throw new Error(
-      "Missing required environment variables: EMAIL_USER or EMAIL_PASS."
-    );
+  if (!apiKey) {
+    throw new Error("Missing BREVO_API_KEY");
   }
 
-  const transporter: Transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
+  const apiInstance = new Brevo.TransactionalEmailsApi();
 
-  const mailOptions = {
-    from: `"Alzahimar" <${emailUser}>`,
-    to,
-    subject,
-    html,
+  apiInstance.setApiKey(
+    Brevo.TransactionalEmailsApiApiKeys.apiKey,
+    apiKey
+  );
+
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  sendSmtpEmail.sender = {
+    name: "Alzahimar",
+    email: "your_verified_email@gmail.com", 
   };
 
   try {
-    console.log("🔄 Verifying SMTP connection...");
-
-    await transporter.verify();
-    console.log("✅ SMTP server is ready");
-
-    console.log("📤 Sending email...");
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("Email sent successfully!");
-    console.log("'essage ID:", info.messageId);
-    console.log("Sent to:", to);
-  } catch (error: any) {
-    console.error("FULL EMAIL ERROR:");
-    console.error(error);
-
-    if (error?.message) {
-      console.error("ERROR MESSAGE:", error.message);
-    }
-
-    if (error?.code) {
-      console.error("ERROR CODE:", error.code);
-    }
-
-    throw error; 
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("Email sent successfully to:", to);
+  } catch (error) {
+    console.error("Brevo Error:", error);
+    throw error;
   }
 };

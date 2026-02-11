@@ -11,6 +11,7 @@
     "dev": "nodemon --watch backend/src --ext ts --exec \"npm run build && node backend/dist/server.js\""
   },
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "axios": "^1.13.4",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
