@@ -208,7 +208,11 @@ exports.verifyResetPassword = (0, express_async_handler_1.default)(async (req, r
     });
 });
 exports.resetPassword = (0, express_async_handler_1.default)(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, passwordConfirmation } = req.body;
+    if (!password || password !== passwordConfirmation) {
+        res.status(400);
+        throw new Error("Passwords do not match");
+    }
     // 1. Find the user by email, matching token, and non-expired time
     const user = await User_1.User.findOne({
         email,

@@ -35,8 +35,9 @@ interface verifyResetPasswordBody{
     code :string
 }
 interface ResetPasswordBody {
-    email: string;
-    password: string;
+    email: string,
+    password: string,
+    passwordConfirmation:string
 }
 
 // --- CONTROLLERS ---
@@ -261,7 +262,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
  * @route POST /api/auth/reset-password
  * @access Public
  */
-export const verifyResetPassword = asyncHandler(async (req: Request, res: Response) => {
+export const verifyResetPassword = asyncHandler(async (req: Request<{},{},verifyResetPasswordBody>, res: Response) => {
     const {code}=req.body;
      const hashedCode = crypto
         .createHash("sha256")
@@ -285,8 +286,11 @@ export const verifyResetPassword = asyncHandler(async (req: Request, res: Respon
 
 })
 export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
-    const { email, password } = req.body;
-
+    const { email, password ,passwordConfirmation} = req.body;
+     if (!password || password !== passwordConfirmation) {
+      res.status(400);
+      throw new Error("Passwords do not match");
+    }
     // 1. Find the user by email, matching token, and non-expired time
     const user = await User.findOne({
         email,
