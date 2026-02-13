@@ -1,33 +1,39 @@
-import nodemailer, { Transporter } from "nodemailer";
-export const sendEmail = async (to: string , subject : string, html : string) : Promise<void> => {
-  //console.log("user : ",process.env.EMAIL_USER)
-  const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS;
+import * as Brevo from '@getbrevo/brevo';
 
-    if (!emailUser || !emailPass) {
-        throw new Error("Missing required environment variables: EMAIL_USER or EMAIL_PASS.");
-    }
-  const transporter:Transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: emailUser,
-      pass:  emailPass
-    }
-  });
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> => {
 
-  const mailOptions = {
-    from: emailUser,
-    to : to ,
-    subject : subject,
-    html: html
+  const apiKey = process.env.BREVO_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing BREVO_API_KEY");
+  }
+
+  const apiInstance = new Brevo.TransactionalEmailsApi();
+
+  apiInstance.setApiKey(
+    Brevo.TransactionalEmailsApiApiKeys.apiKey,
+    apiKey
+  );
+
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
+  sendSmtpEmail.to = [{ email: to }];
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  sendSmtpEmail.sender = {
+    name: "Alzahimar",
+    email: "mohammedhossam343@gmail.com", 
   };
+
   try {
-     
-        await transporter.sendMail(mailOptions);
-         console.log("Email sent successfully to:", to);
-    } catch (error) {
-        console.error("Error sending email:", error);
-        throw new Error("Failed to send email.");
-    }
- 
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("Email sent successfully to:", to);
+  } catch (error) {
+    console.error("Brevo Error:", error);
+    throw error;
+  }
 };
