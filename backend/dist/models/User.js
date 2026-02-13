@@ -60,7 +60,8 @@ const userSchema = new mongoose_1.Schema({
     verificationToken: { type: String },
     isVerified: { type: Boolean, default: false },
     passwordResetToken: String,
-    passwordResetExpires: Date
+    passwordResetExpires: Date,
+    resetSessionToken: String
 }, baseOptions);
 // ---- PASSWORD HOOK ----
 userSchema.pre("save", async function (next) {

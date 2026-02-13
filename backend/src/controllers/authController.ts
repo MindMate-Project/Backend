@@ -31,10 +31,11 @@ interface LoginBody {
 interface ForgotPasswordBody {
     email: string;
 }
-
+interface verifyResetPasswordBody{
+    code :string
+}
 interface ResetPasswordBody {
     email: string;
-    code: string;
     password: string;
 }
 
@@ -251,25 +252,41 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
  * @route POST /api/auth/reset-password
  * @access Public
  */
-export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
-    const { email, code, password } = req.body;
-
-    // 1. Hash the incoming code from the user
-    const hashedCode = crypto
+export const verifyResetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const {code}=req.body;
+     const hashedCode = crypto
         .createHash("sha256")
         .update(code)
         .digest("hex");
+      const user = await User.findOne({
+      passwordResetToken: hashedCode,
+      passwordResetExpires: { $gt: Date.now() },
+    });
 
-    // 2. Find the user by email, matching token, and non-expired time
+    if (!user) {
+      res.status(400);
+      throw new Error("Invalid or expired reset code.");
+    }
+
+    res.status(200).json({
+      message: "Reset code verified successfully.",
+    });
+  
+     
+
+})
+export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
+    const { email, password } = req.body;
+
+    // 1. Find the user by email, matching token, and non-expired time
     const user = await User.findOne({
         email,
-        passwordResetToken: hashedCode,
         passwordResetExpires: { $gt: Date.now() }, 
     });
 
     if (!user) {
         res.status(400);
-        throw new Error("Invalid code or code has expired.");
+        throw new Error("Reset session expired. Try again.");
     }
 
     // Set new password (pre-save hook will hash it)

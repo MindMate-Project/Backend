@@ -133,8 +133,13 @@ export const searchMemoryByTags = asyncHandler(async (req: Request, res: Respons
   }
 
   const memories = await MemoryItem.find({
-    tags: { $in: (tags as string).split(",") }
-  });
+  tags: {
+    $in: (tags as string)
+      .split(",")
+      .map(tag => tag.trim())
+  }
+});
+
 
   res.status(200).json({
     results: memories.length,

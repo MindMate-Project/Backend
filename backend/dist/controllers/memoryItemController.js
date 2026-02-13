@@ -110,7 +110,11 @@ exports.searchMemoryByTags = (0, express_async_handler_1.default)(async (req, re
         throw new Error("Tags query is required");
     }
     const memories = await MemoryItem_1.default.find({
-        tags: { $in: tags.split(",") }
+        tags: {
+            $in: tags
+                .split(",")
+                .map(tag => tag.trim())
+        }
     });
     res.status(200).json({
         results: memories.length,

@@ -10,5 +10,6 @@ router.post("/register", authController_1.registerUser);
 router.get('/verify/:verificationToken', authController_1.verifyUserAccount);
 router.post("/login", authController_1.loginUser);
 router.post('/forgot-password', authController_1.forgotPassword);
+router.post("/verify-reset-password", authController_1.verifyResetPassword);
 router.post('/reset-password', authController_1.resetPassword);
 exports.default = router;

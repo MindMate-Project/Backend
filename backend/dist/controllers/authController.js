@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.forgotPassword = exports.loginUser = exports.verifyUserAccount = exports.registerUser = void 0;
+exports.resetPassword = exports.verifyResetPassword = exports.forgotPassword = exports.loginUser = exports.verifyUserAccount = exports.registerUser = void 0;
 const User_1 = require("../models/User");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const generateToken_1 = __importDefault(require("../utils/generateToken"));
@@ -186,22 +186,34 @@ exports.forgotPassword = (0, express_async_handler_1.default)(async (req, res) =
  * @route POST /api/auth/reset-password
  * @access Public
  */
-exports.resetPassword = (0, express_async_handler_1.default)(async (req, res) => {
-    const { email, code, password } = req.body;
-    // 1. Hash the incoming code from the user
+exports.verifyResetPassword = (0, express_async_handler_1.default)(async (req, res) => {
+    const { code } = req.body;
     const hashedCode = crypto_1.default
         .createHash("sha256")
         .update(code)
         .digest("hex");
-    // 2. Find the user by email, matching token, and non-expired time
     const user = await User_1.User.findOne({
-        email,
         passwordResetToken: hashedCode,
         passwordResetExpires: { $gt: Date.now() },
     });
     if (!user) {
         res.status(400);
-        throw new Error("Invalid code or code has expired.");
+        throw new Error("Invalid or expired reset code.");
+    }
+    res.status(200).json({
+        message: "Reset code verified successfully.",
+    });
+});
+exports.resetPassword = (0, express_async_handler_1.default)(async (req, res) => {
+    const { email, password } = req.body;
+    // 1. Find the user by email, matching token, and non-expired time
+    const user = await User_1.User.findOne({
+        email,
+        passwordResetExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+        res.status(400);
+        throw new Error("Reset session expired. Try again.");
     }
     // Set new password (pre-save hook will hash it)
     user.password = password;

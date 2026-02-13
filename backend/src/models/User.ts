@@ -13,6 +13,8 @@ export interface IBaseUser {
     isVerified: boolean;
     passwordResetToken?: string;
     passwordResetExpires?: Date;
+     resetSessionToken?:String 
+
 }
 
 export interface IUserMethods {
@@ -76,7 +78,8 @@ const userSchema = new Schema(
         verificationToken: { type: String },
         isVerified: { type: Boolean, default: false },
         passwordResetToken: String,
-        passwordResetExpires: Date
+        passwordResetExpires: Date,
+        resetSessionToken:String 
     },
     baseOptions
 );
