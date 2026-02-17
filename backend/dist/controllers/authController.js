@@ -16,7 +16,7 @@ const crypto_1 = __importDefault(require("crypto"));
  * @access Public
  */
 exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => {
-    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes } = req.body;
+    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes, device } = req.body;
     if (!password) {
         res.status(400);
         throw new Error("Password is required for registration.");
@@ -35,6 +35,9 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
             dateOfBirth,
             medicalNotes,
             role: "patient",
+            device: {
+                deviceId: device?.deviceId || undefined
+            }
         });
     }
     else if (role === "caregiver") {
@@ -60,7 +63,7 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
         <a href="${verificationUrl}">Activate Account</a>
     `;
     try {
-        await (0, sendEmail_1.sendEmail)(user.email, "Account Verification", message);
+        // await sendEmail(user.email, "Account Verification", message);
         res.status(201).json({
             message: "User registered successfully. Please check your email.",
             data: {
@@ -116,10 +119,10 @@ exports.loginUser = (0, express_async_handler_1.default)(async (req, res) => {
     const user = await User_1.User.findOne({ email }).select('+password');
     // 2. Check existence and password match
     if (user && (await user.matchPassword(password))) {
-        if (!user.isVerified) {
-            res.status(401);
-            throw new Error('Please verify your account first. Check your email for the activation link.');
-        }
+        // if (!user.isVerified) {
+        //     res.status(401); 
+        //     throw new Error('Please verify your account first. Check your email for the activation link.');
+        // }
         const token = (0, generateToken_1.default)(user._id);
         res.json({
             message: "Login successful",

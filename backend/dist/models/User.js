@@ -86,6 +86,7 @@ exports.User = mongoose_1.default.model("User", userSchema);
 const patientSchema = new mongoose_1.Schema({
     dateOfBirth: Date,
     medicalNotes: String,
+    caregivers: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "caregiver" }],
     known_people: [
         {
             name: {
@@ -116,7 +117,25 @@ const patientSchema = new mongoose_1.Schema({
                 default: Date.now
             }
         }
-    ]
+    ],
+    device: {
+        deviceId: {
+            type: String,
+        },
+        latitude: {
+            type: Number,
+        },
+        longitude: {
+            type: Number,
+        },
+        timestamp: {
+            type: Date,
+            default: Date.now
+        },
+        battery: {
+            type: Number
+        }
+    }
 });
 exports.Patient = exports.User.discriminator("patient", patientSchema);
 // Caregiver
@@ -134,6 +153,6 @@ const caregiverSchema = new mongoose_1.Schema({
             message: (props) => `${props.value} is not a valid phone number!`
         }
     },
-    patients: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "User" }]
+    patients: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "patient" }]
 });
 exports.Caregiver = exports.User.discriminator("caregiver", caregiverSchema);

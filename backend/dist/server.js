@@ -9,6 +9,8 @@ const express_1 = __importDefault(require("express"));
 const db_1 = __importDefault(require("./config/db"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const memoryItemRoutes_1 = __importDefault(require("./routes/memoryItemRoutes"));
+const deviceRoutes_1 = __importDefault(require("./routes/deviceRoutes"));
+const caregiverRoutes_1 = __importDefault(require("./routes/caregiverRoutes"));
 const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const alertRoutes_1 = __importDefault(require("./routes/alertRoutes"));
 const faceRoutes_1 = __importDefault(require("./routes/faceRoutes"));
@@ -19,12 +21,14 @@ app.use(express_1.default.json());
 app.use((0, cors_1.default)());
 app.use("/api/auth", authRoutes_1.default);
 app.use("/api/memories", memoryItemRoutes_1.default);
+app.use("/api/caregiver", caregiverRoutes_1.default);
 app.use("/api/reminders", reminderRoutes_1.default);
 app.use("/api/alerts", alertRoutes_1.default);
+app.use("/api/device", deviceRoutes_1.default);
 app.use("/api/face/patient", faceRoutes_1.default);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
-    res.send(`API is running on port`);
+    res.send(`API is running on port ${PORT}`);
 });
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
