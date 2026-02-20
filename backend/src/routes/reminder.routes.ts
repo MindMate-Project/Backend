@@ -5,9 +5,9 @@ import {
   getReminderById,
   updateReminder,
   deleteReminder,
-} from "../controllers/reminderController";
-import { protect } from "../middlewares/authMiddleware";  
-import { authorize } from "../middlewares/authorize";
+} from "../controllers/reminder.controller";
+import { protect } from "../middlewares/auth.middleware";  
+import { authorize } from "../middlewares/authorize.middleware";
 const router = express.Router();
 
 router.post(

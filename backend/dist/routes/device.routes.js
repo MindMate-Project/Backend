@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authorize_middleware_1 = require("../middlewares/authorize.middleware");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const device_controller_1 = require("../controllers/device.controller");
+const router = (0, express_1.Router)();
+router.get('/location/:deviceId', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), device_controller_1.deviceLocation);
+router.post('/assign-device', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), device_controller_1.assignDevice);
+exports.default = router;

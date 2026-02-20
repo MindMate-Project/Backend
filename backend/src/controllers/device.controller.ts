@@ -1,0 +1,80 @@
+import { Request, Response } from "express";
+import { Caregiver, IPatient, Patient } from "../models/User";
+import asyncHandler from "express-async-handler";
+import { Types } from "mongoose";
+
+export const deviceLocation = asyncHandler(async (req: Request, res: Response) => {
+    const { patientId } = req.params;
+    const user = req.user;
+
+    if (!user || user.role !== "caregiver") {
+        res.status(403);
+        throw new Error("Only caregivers can access this resource");
+    }
+
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        res.status(404);
+        throw new Error("This patient not found");
+    }
+
+    if (!patient.device || !patient.device.deviceId) {
+        res.status(404);
+        throw new Error("This patient does not have a device assigned");
+    }
+
+    const caregiverId = user._id as Types.ObjectId;
+
+    if (!patient.caregivers.includes(caregiverId)) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
+
+    res.status(200).json({
+        message: "device found successfuly",
+        data: patient
+    });
+});
+
+
+export const assignDevice = asyncHandler(async (req: Request, res: Response) => {
+    const { deviceId, patientEmail } = req.body;
+    const user = req.user;
+
+    if (!user || user.role !== "caregiver") {
+        res.status(403);
+        throw new Error("Only caregivers can access this resource");
+    }
+
+    if (!deviceId || !patientEmail) {
+        res.status(400);
+        throw new Error("deviceId and patientEmail are required");
+    }
+
+    const usedDevice = await Patient.findOne({ "device.deviceId": deviceId });
+
+    if (usedDevice) {
+        res.status(409);
+        throw new Error("This device is used by another patient");
+    }
+
+    const patient = await Patient.findOne({ email: patientEmail });
+
+    if (!patient) {
+        res.status(401);
+        throw new Error("User not found");
+    }
+
+    if (!patient.caregivers.includes(user._id as Types.ObjectId)) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
+
+    patient.device.deviceId = deviceId;
+    await patient.save();
+
+    res.status(200).json({
+        message: "device assigned to patient successfuly",
+    })
+});

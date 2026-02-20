@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { protect } from "../middlewares/authMiddleware";
-import { authorize } from "../middlewares/authorize";
+import { protect } from "../middlewares/auth.middleware";
+import { authorize } from "../middlewares/authorize.middleware";
 import {
     getAllPatients,
     assignPatientToCaregiver,
     removePatientFromCaregiver
-} from "../controllers/caregiverController";
+} from "../controllers/caregiver.controller";
 
 const router = Router();
 

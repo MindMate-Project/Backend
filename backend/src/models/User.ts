@@ -127,7 +127,7 @@ export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSch
 const patientSchema = new Schema({
     dateOfBirth: Date,
     medicalNotes: String,
-    caregivers: [{ type: Schema.Types.ObjectId, ref: "caregiver" }],
+    caregivers: [{ type: Types.ObjectId, ref: "caregiver" }],
 
     known_people: [
         {
@@ -202,7 +202,7 @@ const caregiverSchema = new Schema({
             message: (props: any) => `${props.value} is not a valid phone number!`
         }
     },
-    patients: [{ type: Schema.Types.ObjectId, ref: "patient" }]
+    patients: [{ type: Types.ObjectId, ref: "patient" }]
 });
 
 export const Caregiver = User.discriminator<ICaregiver, CaregiverModel>("caregiver", caregiverSchema);
