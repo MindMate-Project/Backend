@@ -21,6 +21,9 @@ interface RegisterBody {
     phone?: string;
     dateOfBirth?: Date;
     medicalNotes?: string;
+    device?: {
+        deviceId: string;
+    }
 }
 
 interface LoginBody {
@@ -49,7 +52,7 @@ interface ResetPasswordBody {
  */
 export const registerUser = asyncHandler(
   async (req: Request<{}, {}, RegisterBody>, res: Response): Promise<void> => {
-    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes } = req.body;
+    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes, device } = req.body;
 
     if (!password) {
       res.status(400);
@@ -72,6 +75,9 @@ export const registerUser = asyncHandler(
         dateOfBirth,
         medicalNotes,
         role: "patient",
+        device: {
+            deviceId: device?.deviceId || undefined
+        }
       } as IPatient);
     } else if (role === "caregiver") {
       user = await Caregiver.create({

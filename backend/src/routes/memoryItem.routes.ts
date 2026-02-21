@@ -6,10 +6,10 @@ import {
   updateMemory,
   deleteMemory,
   searchMemoryByTags,
-} from "../controllers/memoryItemController";
+} from "../controllers/memoryItem.controller";
 
-import { protect } from "../middlewares/authMiddleware";
-import { authorize } from "../middlewares/authorize";
+import { protect } from "../middlewares/auth.middleware";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router = express.Router();
 

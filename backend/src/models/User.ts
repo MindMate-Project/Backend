@@ -13,7 +13,7 @@ export interface IBaseUser {
     isVerified: boolean;
     passwordResetToken?: string;
     passwordResetExpires?: Date;
-     resetSessionToken?:String 
+    resetSessionToken?: string;
 
 }
 
@@ -26,6 +26,7 @@ export interface IMongooseBaseUser extends IBaseUser, Document, IUserMethods {}
 export interface IPatientProperties {
     dateOfBirth?: Date;
     medicalNotes?: string;
+    caregivers: Types.ObjectId[];
 }
 
 export interface ICaregiverProperties {
@@ -43,8 +44,17 @@ export interface IKnownPerson {
     updated_at?: Date;
 }
 
+export interface IPatientDevice{
+    deviceId: string;
+    latitude: number;
+    longitude: number;
+    timestamp: Date;
+    battery?: number;
+}
+
 export interface IPatient extends IMongooseBaseUser, IPatientProperties {
     known_people: IKnownPerson[];
+    device: IPatientDevice;
 }
 
 export interface ICaregiver extends IMongooseBaseUser, ICaregiverProperties {}
@@ -117,6 +127,7 @@ export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSch
 const patientSchema = new Schema({
     dateOfBirth: Date,
     medicalNotes: String,
+    caregivers: [{ type: Types.ObjectId, ref: "caregiver" }],
 
     known_people: [
         {
@@ -152,7 +163,26 @@ const patientSchema = new Schema({
                 default: Date.now
             }
         }
-    ]
+    ],
+    
+    device: {
+        deviceId: {
+            type: String,
+        },
+        latitude: {
+            type: Number,
+        },
+        longitude: {
+            type: Number,
+        },
+        timestamp:{
+            type: Date,
+            default: Date.now
+        },
+        battery: {
+            type: Number
+        }
+    }
 });
 
 export const Patient = User.discriminator<IPatient, PatientModel>("patient", patientSchema);
@@ -172,7 +202,7 @@ const caregiverSchema = new Schema({
             message: (props: any) => `${props.value} is not a valid phone number!`
         }
     },
-    patients: [{ type: Schema.Types.ObjectId, ref: "User" }]
+    patients: [{ type: Types.ObjectId, ref: "patient" }]
 });
 
 export const Caregiver = User.discriminator<ICaregiver, CaregiverModel>("caregiver", caregiverSchema);

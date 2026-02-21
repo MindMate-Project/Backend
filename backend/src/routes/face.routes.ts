@@ -3,9 +3,9 @@ import multer from "multer";
 import {
   registerPatientFace,
   identifyPatientByFace
-} from "../controllers/faceController";
-import { protect } from "../middlewares/authMiddleware";
-import { authorize } from "../middlewares/authorize";
+} from "../controllers/face.controller";
+import { protect } from "../middlewares/auth.middleware";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router = express.Router();
 

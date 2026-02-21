@@ -5,7 +5,7 @@ import {
   getAlertById,
   acknowledgeAlert,
   deleteAlert,
-} from "../controllers/alertController";
+} from "../controllers/alert.controller";
 
 const router = express.Router();
 
