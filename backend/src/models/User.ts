@@ -27,6 +27,7 @@ export interface IPatientProperties {
     dateOfBirth?: Date;
     medicalNotes?: string;
     caregivers: Types.ObjectId[];
+    pendingCaregiverRequests: IPendingCaregiverRequest[];
 }
 
 export interface ICaregiverProperties {
@@ -50,6 +51,13 @@ export interface IPatientDevice{
     longitude: number;
     timestamp: Date;
     battery?: number;
+}
+
+export interface IPendingCaregiverRequest {
+    caregiver: Types.ObjectId;
+    status: "pending" | "accepted" | "rejected";
+    requestedAt: Date;
+    respondedAt?: Date;
 }
 
 export interface IPatient extends IMongooseBaseUser, IPatientProperties {
@@ -128,6 +136,28 @@ const patientSchema = new Schema({
     dateOfBirth: Date,
     medicalNotes: String,
     caregivers: [{ type: Types.ObjectId, ref: "caregiver" }],
+    
+    pendingCaregiverRequests: [
+        {
+            caregiver: {
+                type: Types.ObjectId,
+                ref: "caregiver",
+                required: true
+            },
+            status: {
+                type: String,
+                enum: ["pending", "accepted", "rejected"],
+                default: "pending"
+            },
+            requestedAt: {
+                type: Date,
+                default: Date.now
+            },
+            respondedAt: {
+                type: Date
+            }
+        }
+    ],
 
     known_people: [
         {
