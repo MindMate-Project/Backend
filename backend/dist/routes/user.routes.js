@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const authorize_middleware_1 = require("../middlewares/authorize.middleware");
+const caregiver_controller_1 = require("../controllers/caregiver.controller");
+const router = (0, express_1.Router)();
+router.get('/patients', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), caregiver_controller_1.getAllPatients);
+router.get('/caregiver', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), caregiver_controller_1.getCaregiverInfo);
+router.post('/patient/assignment-request', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), caregiver_controller_1.assignPatientToCaregiver);
+router.delete('/remove-patient', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), caregiver_controller_1.removePatientFromCaregiver);
+router.patch('/update-patient', auth_middleware_1.protect, (0, authorize_middleware_1.authorize)('caregiver'), caregiver_controller_1.updatePatientInfo);
+exports.default = router;

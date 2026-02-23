@@ -26,7 +26,11 @@ export const deviceLocation = asyncHandler(async (req: Request, res: Response) =
 
     const caregiverId = user._id as Types.ObjectId;
 
-    if (!patient.caregivers.includes(caregiverId)) {
+    const isAssignedToCaregiver = patient.caregivers.some((id: Types.ObjectId) =>
+        id.equals(caregiverId)
+    );
+
+    if (!isAssignedToCaregiver) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
     }
@@ -66,7 +70,13 @@ export const assignDevice = asyncHandler(async (req: Request, res: Response) => 
         throw new Error("User not found");
     }
 
-    if (!patient.caregivers.includes(user._id as Types.ObjectId)) {
+    const caregiverId = user._id as Types.ObjectId;
+
+    const isAssignedToCaregiver = patient.caregivers.some((id: Types.ObjectId) =>
+        id.equals(caregiverId)
+    );
+
+    if (!isAssignedToCaregiver) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
     }
@@ -76,5 +86,6 @@ export const assignDevice = asyncHandler(async (req: Request, res: Response) => 
 
     res.status(200).json({
         message: "device assigned to patient successfuly",
+        data: patient
     })
 });

@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes"
 import memoryItemRoutes from "./routes/memoryItem.routes"
 import deviceRoutes from "./routes/device.routes"
 import caregiverRoutes from "./routes/caregiver.routes"
+import patientRoutes from "./routes/patient.routes"
 import reminderRoutes from "./routes/reminder.routes"
 import alertRoutes from "./routes/alert.routes"
 import faceRouter from "./routes/face.routes"
@@ -26,6 +27,7 @@ const iotService = new IoTService();
 app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryItemRoutes);
 app.use("/api/caregiver", caregiverRoutes);
+app.use("/api/patient", patientRoutes);
 app.use("/api/reminders",reminderRoutes)
 app.use("/api/alerts", alertRoutes);
 app.use("/api/device", deviceRoutes);
