@@ -110,7 +110,12 @@ const patientSchema = new mongoose_1.Schema({
     ],
     known_people: [
         {
-            name: {
+            firstName: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            lastName: {
                 type: String,
                 required: true,
                 trim: true
