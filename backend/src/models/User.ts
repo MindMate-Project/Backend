@@ -37,7 +37,8 @@ export interface ICaregiverProperties {
 }
 
 export interface IKnownPerson {
-    name: string;
+    firstName: string;
+    lastName: string;
     relationship: string;
     average_embedding: number[];
     embeddings_count: number;
@@ -160,40 +161,41 @@ const patientSchema = new Schema({
     ],
 
     known_people: [
-        {
-            name: {
-                type: String,
-                required: true,
-                trim: true
-            },
-            relationship: {
-                type: String,
-                required: true,
-                trim: true
-            },
-
-            average_embedding: {
-                type: [Number], 
-                required: true
-            },
-
-            embeddings_count: {
-                type: Number,
-                required: true,
-                default: 1
-            },
-
-            created_at: {
-                type: Date,
-                default: Date.now
-            },
-
-            updated_at: {
-                type: Date,
-                default: Date.now
-            }
+    {
+        firstName: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        lastName: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        relationship: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        average_embedding: {
+            type: [Number],
+            required: true
+        },
+        embeddings_count: {
+            type: Number,
+            required: true,
+            default: 1
+        },
+        created_at: {
+            type: Date,
+            default: Date.now
+        },
+        updated_at: {
+            type: Date,
+            default: Date.now
         }
-    ],
+    }
+],
     
     device: {
         deviceId: {

@@ -119,10 +119,10 @@ exports.loginUser = (0, express_async_handler_1.default)(async (req, res) => {
     const user = await User_1.User.findOne({ email }).select('+password');
     // 2. Check existence and password match
     if (user && (await user.matchPassword(password))) {
-        // if (!user.isVerified) {
-        //     res.status(401); 
-        //     throw new Error('Please verify your account first. Check your email for the activation link.');
-        // }
+        if (!user.isVerified) {
+            res.status(401);
+            throw new Error('Please verify your account first. Check your email for the activation link.');
+        }
         const token = (0, generateToken_1.default)(user._id);
         res.json({
             message: "Login successful",
