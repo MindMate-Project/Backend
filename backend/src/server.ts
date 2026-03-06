@@ -27,7 +27,7 @@ app.use(cors());
 const server = http.createServer(app);
 
 export const io = setupLocationSocket(server);
-//const iotService = new IoTService();
+const iotService = new IoTService();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/memories", memoryItemRoutes);
