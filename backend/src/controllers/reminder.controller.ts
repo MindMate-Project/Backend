@@ -1,118 +1,231 @@
 import { Request, Response } from "express";
-import asyncHandler from "express-async-handler";
-import Reminder from "../models/Reminder";
+import {
+  Reminder,
+  AppointmentReminder,
+  MedicationReminder,
+} from "../models/Reminder";
 
-// ----------------------------------------------------------------------
+/* =============================================================
+    ✅ Create Reminder
+    Handles single and recurring (daily/weekly) reminders.
+    Generates multiple database entries based on frequency.
+============================================================= */
+export const createReminder = async (req: Request, res: Response) => {
+  try {
+    const { type, scheduledTime, frequency, timesPerDay, endDate, appointmentDate,...rest } = req.body;
 
-/**
- * @desc Create new reminder
- * @route POST /api/reminders
- * @access Private (Patient / Caregiver)
- */
-export const createReminder = asyncHandler(async (req: Request, res: Response) => {
-  const { patient_id, time, repeat_rule, status } = req.body;
+    // Basic validation: ensure type and initial time are provided
+    if (!type || !scheduledTime) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
-  if (!patient_id || !time) {
-    res.status(400);
-    throw new Error("Missing required fields");
+    const start = new Date(scheduledTime);
+    // Prevent creating reminders for dates that have already passed
+    if (start < new Date()) {
+      return res.status(400).json({ message: "Scheduled time cannot be in the past" });
+    }
+
+    const remindersToCreate = [];
+  if (type === "appointment") {
+      // 1-reminder before actual date
+      const actualAppointmentTime = start;
+      remindersToCreate.push({
+
+        ...rest,
+
+        type,
+
+        scheduledTime: actualAppointmentTime,
+
+        appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+        isSent: false,
+
+      });
+    // 2-reminder before one day
+      const dayBefore = new Date(actualAppointmentTime);
+
+      dayBefore.setHours(dayBefore.getHours() - 24);
+
+      if (dayBefore > new Date()) {
+
+        remindersToCreate.push({
+
+          ...rest,
+
+          type,
+
+          scheduledTime: dayBefore,
+
+          appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+          notes: `(Reminder: 24h before) ${rest.notes || ""}`,
+
+          isSent: false,
+
+        });
+
+      }
+      // 3-before one hour
+      const hourBefore = new Date(actualAppointmentTime);
+
+      hourBefore.setHours(hourBefore.getHours() - 1);
+
+      if (hourBefore > new Date()) {
+
+        remindersToCreate.push({
+
+          ...rest,
+
+          type,
+
+          scheduledTime: hourBefore,
+
+          appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+          notes: `(Reminder: 1h before) ${rest.notes || ""}`,
+
+          isSent: false,
+
+        });
+
+      }
+    } else{
+    const iterations = timesPerDay || 1; // Default to 1 dose/event per day
+    const intervalHours = 24 / iterations; // Calculate spacing (e.g., 3 times = every 8 hours)
+    
+    // Determine the boundary date for the recurrence loop
+    const lastDate = frequency === "daily" && endDate ? new Date(endDate) : new Date(start);
+
+    let currentDay = new Date(start);
+
+    // Loop through each day from start date until the end date
+    while (currentDay <= lastDate) {
+      // For each day, create the specified number of doses/instances
+      for (let i = 0; i < iterations; i++) {
+        const instanceTime = new Date(currentDay);
+        
+        // Offset the hour based on the iteration (e.g., 08:00, 16:00, 00:00)
+        instanceTime.setHours(instanceTime.getHours() + (i * intervalHours));
+
+        // Only add to array if the specific instance time hasn't exceeded the endDate
+        if (instanceTime <= lastDate || frequency === "once") {
+          remindersToCreate.push({
+            ...rest,
+            type,
+            scheduledTime: instanceTime,
+            frequency,
+            timesPerDay,
+            endDate,
+            status: "pending",
+            isSent: false,
+          });
+        }
+      }
+      
+      // Move the cursor to the next calendar day
+      currentDay.setDate(currentDay.getDate() + 1);
+      
+      // Safety break to prevent infinite loops or database flooding
+      if (remindersToCreate.length > 500) break; 
+    }}
+
+    let result;
+    // Use insertMany for high performance when saving multiple documents at once
+    if (type === "appointment") {
+      result = await AppointmentReminder.insertMany(remindersToCreate);
+    } else if (type === "medication") {
+      result = await MedicationReminder.insertMany(remindersToCreate);
+    } else {
+      return res.status(400).json({ message: "Invalid reminder type" });
+    }
+
+    res.status(201).json({
+      message: `${remindersToCreate.length} reminders created successfully`,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating reminder", error });
   }
+};
 
-  const reminder = await Reminder.create({
-    patient_id,
-    time,
-    repeat_rule,
-    status
-  });
+/* =============================================================
+    ✅ Get All Reminders For Patient
+    Retrieves all instances and populates related user data.
+============================================================= */
+export const getPatientReminders = async (req: Request, res: Response) => {
+  try {
+    const reminders = await Reminder.find({
+      patient: req.params.patientId,
+    })
+      .sort({ scheduledTime: 1 }) // Order by time (Ascending)
+      .populate("patient caregiver");
 
-  res.status(201).json({
-    message: "Reminder created successfully",
-    data: reminder
-  });
-});
-
-// ----------------------------------------------------------------------
-
-/**
- * @desc Get all reminders for a patient
- * @route GET /api/reminders/:patientId
- * @access Private
- */
-export const getPatientReminders = asyncHandler(async (req: Request, res: Response) => {
-  const { patientId } = req.params;
-
-  const reminders = await Reminder.find({ patient_id: patientId });
-
-  res.status(200).json({
-    results: reminders.length,
-    data: reminders
-  });
-});
-
-// ----------------------------------------------------------------------
-
-/**
- * @desc Get single reminder by ID
- * @route GET /api/reminder/:id
- * @access Private
- */
-export const getReminderById = asyncHandler(async (req: Request, res: Response) => {
-  const reminder = await Reminder.findById(req.params.id);
-
-  if (!reminder) {
-    res.status(404);
-    throw new Error("Reminder not found");
+    res.json(reminders);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching reminders", error });
   }
+};
 
-  res.status(200).json({
-    data: reminder
-  });
-});
+/* =============================================================
+    ✅ Get Single Reminder
+============================================================= */
+export const getReminderById = async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findById(req.params.id).populate(
+      "patient caregiver"
+    );
 
-// ----------------------------------------------------------------------
+    if (!reminder) {
+      return res.status(404).json({ message: "Reminder not found" });
+    }
 
-/**
- * @desc Update reminder
- * @route PUT /api/reminder/:id
- * @access Private
- */
-export const updateReminder = asyncHandler(async (req: Request, res: Response) => {
-  const reminder = await Reminder.findById(req.params.id);
-
-  if (!reminder) {
-    res.status(404);
-    throw new Error("Reminder not found");
+    res.json(reminder);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching reminder", error });
   }
+};
 
-  reminder.time = req.body.time || reminder.time;
-  reminder.repeat_rule = req.body.repeat_rule || reminder.repeat_rule;
-  reminder.status = req.body.status || reminder.status;
+/* =============================================================
+    ✅ Update Reminder
+    Updates specific fields. Protects status/type from manual edit.
+============================================================= */
+export const updateReminder = async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findById(req.params.id);
 
-  const updatedReminder = await reminder.save();
+    if (!reminder) {
+      return res.status(404).json({ message: "Reminder not found" });
+    }
 
-  res.status(200).json({
-    message: "Reminder updated successfully",
-    data: updatedReminder
-  });
-});
+    // Protect system-controlled fields from being overwritten via body
+    delete req.body.status;
+    delete req.body.isSent;
+    delete req.body.type;
 
-// ----------------------------------------------------------------------
+    Object.assign(reminder, req.body);
+    await reminder.save();
 
-/**
- * @desc Delete reminder
- * @route DELETE /api/reminder/:id
- * @access Private
- */
-export const deleteReminder = asyncHandler(async (req: Request, res: Response) => {
-  const reminder = await Reminder.findById(req.params.id);
-
-  if (!reminder) {
-    res.status(404);
-    throw new Error("Reminder not found");
+    res.json(reminder);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating reminder", error });
   }
+};
 
-  await reminder.deleteOne();
 
-  res.status(200).json({
-    message: "Reminder deleted successfully"
-  });
-});
+/* =============================================================
+    ✅ Delete Reminder
+============================================================= */
+export const deleteReminder = async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findByIdAndDelete(req.params.id);
+
+    if (!reminder) {
+      return res.status(404).json({ message: "Reminder not found" });
+    }
+
+    res.json({ message: "Reminder deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting reminder", error });
+  }
+};

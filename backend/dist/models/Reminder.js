@@ -33,28 +33,72 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.MedicationReminder = exports.AppointmentReminder = exports.Reminder = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const reminderSchema = new mongoose_1.Schema({
-    patient_id: {
+const baseOptions = {
+    discriminatorKey: "type",
+    timestamps: true,
+};
+const ReminderSchema = new mongoose_1.Schema({
+    type: {
+        type: String,
+        required: true,
+        enum: ["appointment", "medication"],
+    },
+    patient: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Patient",
+        ref: "User",
         required: true,
     },
-    title: {
-        type: String,
-        trim: true,
+    caregiver: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
     },
-    time: {
+    scheduledTime: {
         type: Date,
         required: true,
     },
-    repeat_rule: {
-        type: String,
+    isSent: {
+        type: Boolean,
+        default: false,
     },
-    status: {
+}, baseOptions);
+exports.Reminder = mongoose_1.default.model("Reminder", ReminderSchema);
+const AppointmentSchema = new mongoose_1.Schema({
+    doctorName: { type: String, required: true },
+    specialty: { type: String, required: true },
+    location: { type: String, required: true },
+    appointmentType: {
         type: String,
-        enum: ["active", "completed", "cancelled"],
-        default: "active",
+        enum: ["consultation", "follow-up", "scan", "lab"],
+        required: true,
     },
-}, { timestamps: true });
-exports.default = mongoose_1.default.model("Reminder", reminderSchema);
+    appointmentDate: { type: Date, required: true },
+    notes: String,
+});
+exports.AppointmentReminder = exports.Reminder.discriminator("appointment", AppointmentSchema);
+const MedicationSchema = new mongoose_1.Schema({
+    medicineName: { type: String, required: true },
+    dosage: { type: String, required: true },
+    form: {
+        type: String,
+        enum: ["tablet", "capsule", "syrup", "injection"],
+        required: true,
+    },
+    frequency: {
+        type: String,
+        enum: ["once", "daily", "weekly"],
+        required: true,
+    },
+    timesPerDay: {
+        type: Number,
+        default: 1,
+    },
+    startDate: {
+        type: Date,
+        required: true,
+    },
+    endDate: Date,
+});
+exports.MedicationReminder = exports.Reminder.discriminator("medication", MedicationSchema);

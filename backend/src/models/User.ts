@@ -8,6 +8,7 @@ export interface IBaseUser {
     name: string;
     email: string;
     password?: string;
+    fcmTokens: string[];
     role: "user" | "patient" | "caregiver" | "admin";
     verificationToken?: string;
     isVerified: boolean;
@@ -93,7 +94,7 @@ const userSchema = new Schema(
             validate: [validator.isEmail, "Enter a valid email"]
         },
         password: { type: String, required: true, select: false },
-        role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+        fcmTokens: { type: [String], default: [] },        role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
         verificationToken: { type: String },
         isVerified: { type: Boolean, default: false },
         passwordResetToken: String,

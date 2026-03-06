@@ -56,7 +56,7 @@ const userSchema = new mongoose_1.Schema({
         validate: [validator_1.default.isEmail, "Enter a valid email"]
     },
     password: { type: String, required: true, select: false },
-    role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+    fcmTokens: { type: [String], default: [] }, role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
     verificationToken: { type: String },
     isVerified: { type: Boolean, default: false },
     passwordResetToken: String,
