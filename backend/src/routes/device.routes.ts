@@ -6,7 +6,7 @@ import { deviceLocation, assignDevice } from "../controllers/device.controller";
 const router = Router();
 
 router.get(
-    '/location/:deviceId',
+    '/location/:patientId',
     protect,
     authorize('caregiver'),
     deviceLocation

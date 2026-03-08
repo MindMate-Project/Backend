@@ -221,7 +221,7 @@ export const identifyPatientByFace = asyncHandler(
       res.status(403);
       throw new Error("Only patients can identify faces");
     }
-
+    
     if (!req.file) {
       res.status(400);
       throw new Error("Image is required");
