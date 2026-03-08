@@ -217,16 +217,11 @@ export const identifyPatientByFace = asyncHandler(
   async (req, res: Response) => {
     const user = req.user;
 
-    // testing for the flutter
-    // if (!user || user.role !== "patient") {
-    //   res.status(403);
-    //   throw new Error("Only patients can identify faces");
-    // }
-    if (!user) {
+    if (!user || user.role !== "patient") {
       res.status(403);
-      throw new Error("Not authorized");
+      throw new Error("Only patients can identify faces");
     }
-
+    
     if (!req.file) {
       res.status(400);
       throw new Error("Image is required");
