@@ -26,6 +26,51 @@ const upload = multer({
 const faceJsonParser = express.json({ limit: "100mb" });
 const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb" });
 
+/**
+ * @swagger
+ * /api/face/patient/register-face:
+ *   post:
+ *     summary: Register a known person face profile for a patient
+ *     tags: [Face]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [firstName, lastName, relationship, files]
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               relationship:
+ *                 type: string
+ *               files:
+ *                 type: array
+ *                 minItems: 3
+ *                 maxItems: 8
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Person registered successfully
+ *       400:
+ *         description: Validation or face processing failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
+ *       409:
+ *         description: Person already registered
+ *       503:
+ *         description: AI service unavailable
+ */
 router.post(
   "/register-face",
   faceJsonParser,
@@ -36,6 +81,45 @@ router.post(
   registerPatientFace
 );
 
+/**
+ * @swagger
+ * /api/face/patient/add-photos:
+ *   post:
+ *     summary: Add additional photos to an existing known person
+ *     tags: [Face]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [firstName, lastName, files]
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Photos added successfully
+ *       400:
+ *         description: Validation failed or max photos exceeded
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient or person not found
+ *       503:
+ *         description: AI service unavailable
+ */
 router.post(
   "/add-photos",
   faceJsonParser,
@@ -46,6 +130,39 @@ router.post(
   addPhotosToKnownPerson
 );
 
+/**
+ * @swagger
+ * /api/face/patient/identify-face:
+ *   post:
+ *     summary: Identify person by a single face image
+ *     tags: [Face]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Face identification completed
+ *       400:
+ *         description: Missing image or no known people
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
+ *       503:
+ *         description: AI service unavailable
+ */
 router.post(
   "/identify-face",
   faceJsonParser,
