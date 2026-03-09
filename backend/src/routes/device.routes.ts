@@ -23,6 +23,25 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Device location retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: device found successfuly
+ *               data:
+ *                 _id: "67d2bb8a5f4c1f6f91361c88"
+ *                 name: "Patient A"
+ *                 device:
+ *                   deviceId: "ESP32-001"
+ *                 location:
+ *                   lat: 30.0444
+ *                   lng: 31.2357
  *       400:
  *         description: Invalid patient ID
  *       401:
@@ -53,15 +72,32 @@ router.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [patientId, serialNumber]
+ *             required: [deviceId, patientEmail]
  *             properties:
- *               patientId:
+ *               deviceId:
  *                 type: string
- *               serialNumber:
+ *               patientEmail:
  *                 type: string
+ *                 format: email
  *     responses:
  *       200:
  *         description: Device assigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: device assigned to patient successfuly
+ *               data:
+ *                 _id: "67d2bb8a5f4c1f6f91361c88"
+ *                 email: "patient-a@example.com"
+ *                 device:
+ *                   deviceId: "ESP32-001"
  *       400:
  *         description: Invalid payload
  *       401:
@@ -70,6 +106,8 @@ router.get(
  *         description: Forbidden
  *       404:
  *         description: Patient or device not found
+ *       409:
+ *         description: Device already assigned to another patient
  */
 router.post(
     '/assign-device',

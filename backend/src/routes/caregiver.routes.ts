@@ -26,6 +26,24 @@ const router = Router();
  *     responses:
  *       200:
  *         description: Caregiver profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: User info retrieved successfully
+ *               data:
+ *                 _id: "67d2a93c5f4c1f6f91361c81"
+ *                 name: "Caregiver One"
+ *                 email: "caregiver@example.com"
+ *                 role: "caregiver"
+ *                 phone: "+201234567890"
+ *                 patients: []
  *       401:
  *         description: Unauthorized
  *       403:
@@ -65,6 +83,21 @@ router.get(
  *     responses:
  *       200:
  *         description: Caregiver profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: User info updated successfully
+ *               data:
+ *                 _id: "67d2a93c5f4c1f6f91361c81"
+ *                 name: "Updated Caregiver"
+ *                 phone: "+201234567890"
  *       400:
  *         description: Invalid request payload
  *       401:
@@ -90,6 +123,27 @@ router.patch(
  *     responses:
  *       200:
  *         description: Patients retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   description: Array of assigned patients (can be empty or multiple)
+ *                   items:
+ *                     type: object
+ *             example:
+ *               message: Patients retrieved successfully
+ *               data:
+ *                 - _id: "67d2bb8a5f4c1f6f91361c88"
+ *                   name: "Patient A"
+ *                   email: "patient-a@example.com"
+ *                 - _id: "67d2bb8a5f4c1f6f91361c89"
+ *                   name: "Patient B"
+ *                   email: "patient-b@example.com"
  *       401:
  *         description: Unauthorized
  *       403:
@@ -120,6 +174,22 @@ router.get(
  *     responses:
  *       200:
  *         description: Patient info retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: Patient info retrieved successfully
+ *               data:
+ *                 _id: "67d2bb8a5f4c1f6f91361c88"
+ *                 name: "Patient A"
+ *                 email: "patient-a@example.com"
+ *                 medicalNotes: "Diabetes"
  *       400:
  *         description: Invalid patient ID
  *       401:
@@ -158,6 +228,23 @@ router.get(
  *     responses:
  *       200:
  *         description: Assignment request sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: Assignment request sent. Waiting for patient response
+ *               data:
+ *                 caregiverId: "67d2a93c5f4c1f6f91361c81"
+ *                 caregiverName: "Caregiver One"
+ *                 patientId: "67d2bb8a5f4c1f6f91361c88"
+ *                 patientName: "Patient A"
+ *                 patientEmail: "patient-a@example.com"
  *       400:
  *         description: Invalid request
  *       401:
@@ -195,6 +282,29 @@ router.post(
  *     responses:
  *       200:
  *         description: Patient removed from caregiver successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     caregiver:
+ *                       type: object
+ *                       nullable: true
+ *                     patient:
+ *                       type: object
+ *                       nullable: true
+ *             example:
+ *               message: Patient removed from caregiver successfully
+ *               data:
+ *                 caregiver:
+ *                   _id: "67d2a93c5f4c1f6f91361c81"
+ *                 patient:
+ *                   _id: "67d2bb8a5f4c1f6f91361c88"
  *       400:
  *         description: Invalid patient ID
  *       401:
@@ -243,6 +353,21 @@ router.delete(
  *     responses:
  *       200:
  *         description: Patient information updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *             example:
+ *               message: Patient information updated successfully
+ *               data:
+ *                 _id: "67d2bb8a5f4c1f6f91361c88"
+ *                 name: "Updated Patient"
+ *                 medicalNotes: "Updated notes"
  *       400:
  *         description: Invalid request
  *       401:
