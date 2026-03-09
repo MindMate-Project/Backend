@@ -58,6 +58,21 @@ const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb"
  *     responses:
  *       200:
  *         description: Person registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 embeddings_count:
+ *                   type: number
+ *             example:
+ *               success: true
+ *               message: Person registered successfully
+ *               embeddings_count: 5
  *       400:
  *         description: Validation or face processing failed
  *       401:
@@ -109,6 +124,21 @@ router.post(
  *     responses:
  *       200:
  *         description: Photos added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 embeddings_count:
+ *                   type: number
+ *             example:
+ *               success: true
+ *               message: Photos added successfully
+ *               embeddings_count: 8
  *       400:
  *         description: Validation failed or max photos exceeded
  *       401:
@@ -152,6 +182,45 @@ router.post(
  *     responses:
  *       200:
  *         description: Face identification completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 identified:
+ *                   type: boolean
+ *                 firstName:
+ *                   type: string
+ *                   nullable: true
+ *                 lastName:
+ *                   type: string
+ *                   nullable: true
+ *                 relationship:
+ *                   type: string
+ *                   nullable: true
+ *                 confidence:
+ *                   type: number
+ *             examples:
+ *               identified:
+ *                 summary: Match found with high confidence
+ *                 value:
+ *                   success: true
+ *                   identified: true
+ *                   firstName: "Ahmed"
+ *                   lastName: "Ali"
+ *                   relationship: "son"
+ *                   confidence: 0.91
+ *               not_identified:
+ *                 summary: No trusted match found
+ *                 value:
+ *                   success: true
+ *                   identified: false
+ *                   firstName: null
+ *                   lastName: null
+ *                   relationship: null
+ *                   confidence: 0.42
  *       400:
  *         description: Missing image or no known people
  *       401:
