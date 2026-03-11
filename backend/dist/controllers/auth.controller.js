@@ -16,7 +16,7 @@ const crypto_1 = __importDefault(require("crypto"));
  * @access Public
  */
 exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => {
-    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes, device } = req.body;
+    const { name, email, password, role, gender, address, phoneNumber, dateOfBirth, medicalNotes, device, } = req.body;
     if (!password) {
         res.status(400);
         throw new Error("Password is required for registration.");
@@ -26,32 +26,47 @@ exports.registerUser = (0, express_async_handler_1.default)(async (req, res) => 
         res.status(400);
         throw new Error("User already exists");
     }
+    // Shared base fields for all roles
+    const baseFields = {
+        name,
+        email,
+        password,
+        gender,
+        address,
+        phoneNumber,
+    };
     let user;
     if (role === "patient") {
         user = await User_1.Patient.create({
-            name,
-            email,
-            password,
-            dateOfBirth,
-            medicalNotes,
+            ...baseFields,
             role: "patient",
+            dateOfBirth,
+            medicalNotes: medicalNotes
+                ? {
+                    diagnosis: medicalNotes.diagnosis,
+                    stage: medicalNotes.stage,
+                    chronicDiseases: medicalNotes.chronicDiseases ?? [],
+                    allergies: medicalNotes.allergies ?? [],
+                    currentMedication: medicalNotes.currentMedication ?? [],
+                }
+                : undefined,
             device: {
-                deviceId: device?.deviceId || undefined
-            }
+                deviceId: device?.deviceId || undefined,
+            },
         });
     }
     else if (role === "caregiver") {
         user = await User_1.Caregiver.create({
-            name,
-            email,
-            password,
-            relation,
-            phone,
+            ...baseFields,
             role: "caregiver",
+            patients: [],
         });
     }
     else {
-        user = await User_1.User.create({ name, email, password, role: "user" });
+        user = await User_1.User.create({
+            ...baseFields,
+            role: "user",
+        });
     }
     const verificationToken = crypto_1.default.randomBytes(20).toString("hex");
     user.verificationToken = verificationToken;
@@ -94,7 +109,7 @@ exports.verifyUserAccount = (0, express_async_handler_1.default)(async (req, res
     const { verificationToken } = req.params;
     const user = await User_1.User.findOne({ verificationToken });
     if (!user) {
-        res.status(200).json({
+        res.status(400).json({
             message: "Account already verified or link expired."
         });
         return;

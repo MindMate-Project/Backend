@@ -12,7 +12,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
     }
     
     if (user.role === "patient") {
-        const patient = await Patient.findById(user._id).populate("caregivers", "name email relation phone");
+        const patient = await Patient.findById(user._id).populate("caregivers", "name email phoneNumber");
         if (!patient) {
             res.status(404);
             throw new Error("Patient not found");
@@ -42,7 +42,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateUserInfo = asyncHandler(async (req: Request, res: Response) => {
     const user = req.user;
-    const { name, phone, medicalNotes } = req.body;
+    const { name, phoneNumber, medicalNotes } = req.body;
 
     if (!user) {
         res.status(401);
@@ -71,7 +71,7 @@ export const updateUserInfo = asyncHandler(async (req: Request, res: Response) =
             throw new Error("Caregiver not found");
         }
         caregiver.name = name || caregiver.name;
-        caregiver.phone = phone || caregiver.phone;
+        caregiver.phoneNumber = phoneNumber || caregiver.phoneNumber; 
         await caregiver.save();
         res.status(200).json({
             message: "User info updated successfully",

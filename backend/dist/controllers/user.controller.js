@@ -68,7 +68,7 @@ exports.updateUserInfo = (0, express_async_handler_1.default)(async (req, res) =
             throw new Error("Caregiver not found");
         }
         caregiver.name = name || caregiver.name;
-        caregiver.phone = phone || caregiver.phone;
+        caregiver.phoneNumber = phone || caregiver.phoneNumber;
         await caregiver.save();
         res.status(200).json({
             message: "User info updated successfully",

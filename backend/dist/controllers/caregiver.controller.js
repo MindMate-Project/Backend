@@ -51,11 +51,16 @@ exports.getPatientInfo = (0, express_async_handler_1.default)(async (req, res) =
     });
 });
 exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (req, res) => {
-    const { patientEmail } = req.body;
+    const { patientEmail, relationship } = req.body; // ← add relationship
     const user = req.user;
     if (!user || user.role !== "caregiver") {
         res.status(403);
         throw new Error("Only caregivers can access this resource");
+    }
+    const validRelationships = ["son", "daughter", "sibling", "medical_staff", "other"];
+    if (!relationship || !validRelationships.includes(relationship)) {
+        res.status(400);
+        throw new Error("A valid relationship is required");
     }
     const patient = await User_1.Patient.findOne({ email: patientEmail });
     if (!patient) {
@@ -75,12 +80,14 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
     }
     if (existingRequest) {
         existingRequest.status = "pending";
+        existingRequest.relationship = relationship; // ← update relationship too
         existingRequest.requestedAt = new Date();
         existingRequest.respondedAt = undefined;
     }
     else {
         patient.pendingCaregiverRequests.push({
             caregiver: caregiverId,
+            relationship, // ← store it
             status: "pending",
             requestedAt: new Date()
         });
@@ -96,6 +103,7 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
         data: {
             caregiverId,
             caregiverName: caregiver.name,
+            relationship, // ← return it in response
             patientId: patient._id,
             patientName: patient.name,
             patientEmail: patient.email,

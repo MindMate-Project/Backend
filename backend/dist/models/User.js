@@ -56,7 +56,18 @@ const userSchema = new mongoose_1.Schema({
         validate: [validator_1.default.isEmail, "Enter a valid email"]
     },
     password: { type: String, required: true, select: false },
-    fcmTokens: { type: [String], default: [] }, role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+    fcmTokens: { type: [String], default: [] },
+    role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+    phoneNumber: {
+        type: String,
+        required: true,
+        validate: {
+            validator: (v) => /^\d{10,15}$/.test(v),
+            message: (props) => `${props.value} is not a valid phone number!`
+        }
+    },
+    address: { type: String, required: true },
+    gender: { type: String, required: true, enum: ["male", "female"] },
     verificationToken: { type: String },
     isVerified: { type: Boolean, default: false },
     passwordResetToken: String,
@@ -85,13 +96,24 @@ exports.User = mongoose_1.default.model("User", userSchema);
 // Patient
 const patientSchema = new mongoose_1.Schema({
     dateOfBirth: Date,
-    medicalNotes: String,
+    medicalNotes: {
+        diagnosis: { type: String },
+        stage: { type: String },
+        chronicDiseases: { type: [String], default: [] },
+        allergies: { type: [String], default: [] },
+        currentMedication: { type: [String], default: [] }
+    },
     caregivers: [{ type: mongoose_1.Types.ObjectId, ref: "caregiver" }],
     pendingCaregiverRequests: [
         {
             caregiver: {
                 type: mongoose_1.Types.ObjectId,
                 ref: "caregiver",
+                required: true
+            },
+            relationship: {
+                type: String,
+                enum: ["son", "daughter", "sibling", "medical_staff", "other"],
                 required: true
             },
             status: {
@@ -166,19 +188,23 @@ const patientSchema = new mongoose_1.Schema({
 exports.Patient = exports.User.discriminator("patient", patientSchema);
 // Caregiver
 const caregiverSchema = new mongoose_1.Schema({
-    relation: {
-        type: String,
-        enum: ["son", "daughter", "sibling", "medical_staff", "other"],
-        required: true
-    },
-    phone: {
-        type: String,
-        required: true,
-        validate: {
-            validator: (v) => /^\d{10,15}$/.test(v),
-            message: (props) => `${props.value} is not a valid phone number!`
+    patients: [
+        {
+            patient: {
+                type: mongoose_1.Types.ObjectId,
+                ref: "patient",
+                required: true
+            },
+            relationship: {
+                type: String,
+                enum: ["son", "daughter", "sibling", "medical_staff", "other"],
+                required: true
+            },
+            connectedAt: {
+                type: Date,
+                default: Date.now
+            }
         }
-    },
-    patients: [{ type: mongoose_1.Types.ObjectId, ref: "patient" }]
+    ]
 });
 exports.Caregiver = exports.User.discriminator("caregiver", caregiverSchema);
