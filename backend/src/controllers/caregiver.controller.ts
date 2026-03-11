@@ -65,15 +65,21 @@ export const getPatientInfo = asyncHandler(async (req: Request, res: Response) =
 
 
 export const assignPatientToCaregiver = asyncHandler(async (req: Request, res: Response) => {
-    const { patientEmail } = req.body;
+    const { patientEmail, relationship } = req.body;  // ← add relationship
     const user = req.user;
 
     if (!user || user.role !== "caregiver") {
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
-    
-    const patient = await Patient.findOne({email: patientEmail });
+
+    const validRelationships = ["son", "daughter", "sibling", "medical_staff", "other"];
+    if (!relationship || !validRelationships.includes(relationship)) {
+        res.status(400);
+        throw new Error("A valid relationship is required");
+    }
+
+    const patient = await Patient.findOne({ email: patientEmail });
 
     if (!patient) {
         res.status(404);
@@ -102,11 +108,13 @@ export const assignPatientToCaregiver = asyncHandler(async (req: Request, res: R
 
     if (existingRequest) {
         existingRequest.status = "pending";
+        existingRequest.relationship = relationship;  // ← update relationship too
         existingRequest.requestedAt = new Date();
         existingRequest.respondedAt = undefined;
     } else {
         patient.pendingCaregiverRequests.push({
             caregiver: caregiverId,
+            relationship,                             // ← store it
             status: "pending",
             requestedAt: new Date()
         });
@@ -126,6 +134,7 @@ export const assignPatientToCaregiver = asyncHandler(async (req: Request, res: R
         data: {
             caregiverId,
             caregiverName: caregiver.name,
+            relationship,                             // ← return it in response
             patientId: patient._id,
             patientName: patient.name,
             patientEmail: patient.email,

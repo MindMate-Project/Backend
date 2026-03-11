@@ -1,10 +1,10 @@
-import { User, Patient, Caregiver, IMongooseBaseUser, IPatient, ICaregiver } from "../models/User";
-import asyncHandler from "express-async-handler";
+import { User, Patient, Caregiver, IMongooseBaseUser, IPatient, ICaregiver, IMedicalNotes }
+from "../models/User"; import asyncHandler from "express-async-handler";
 import generateToken from "../utils/generateToken";
 import { sendEmail } from "../utils/sendEmail";
 import crypto from "crypto";
 import mongoose from "mongoose"
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
 // --- Interfaces (Defined in a separate file or included here for completeness) ---
 
@@ -12,18 +12,17 @@ interface AuthenticatedRequest extends Request {
     user?: IMongooseBaseUser;
 }
 
-interface RegisterBody {
-    name: string;
-    email: string;
-    password?: string;
-    role: "user" | "patient" | "caregiver";
-    relation?: ICaregiver['relation'];
-    phone?: string;
-    dateOfBirth?: Date;
-    medicalNotes?: string;
-    device?: {
-        deviceId: string;
-    }
+export interface RegisterBody {
+  name: string;
+  email: string;
+  password: string;
+  role: "user" | "patient" | "caregiver";
+  gender: "male" | "female";
+  address: string;
+  phoneNumber: string;
+  dateOfBirth?: Date;
+  medicalNotes?: IMedicalNotes;
+  device?: { deviceId?: string };
 }
 
 interface LoginBody {
@@ -52,7 +51,18 @@ interface ResetPasswordBody {
  */
 export const registerUser = asyncHandler(
   async (req: Request<{}, {}, RegisterBody>, res: Response): Promise<void> => {
-    const { name, email, password, role, relation, phone, dateOfBirth, medicalNotes, device } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      gender,
+      address,
+      phoneNumber,
+      dateOfBirth,
+      medicalNotes,
+      device,
+    } = req.body;
 
     if (!password) {
       res.status(400);
@@ -65,31 +75,48 @@ export const registerUser = asyncHandler(
       throw new Error("User already exists");
     }
 
+    // Shared base fields for all roles
+    const baseFields = {
+      name,
+      email,
+      password,
+      gender,
+      address,
+      phoneNumber,
+    };
+
     let user: IMongooseBaseUser;
 
     if (role === "patient") {
       user = await Patient.create({
-        name,
-        email,
-        password,
-        dateOfBirth,
-        medicalNotes,
+        ...baseFields,
         role: "patient",
+        dateOfBirth,
+        medicalNotes: medicalNotes
+          ? {
+              diagnosis: medicalNotes.diagnosis,
+              stage: medicalNotes.stage,
+              chronicDiseases: medicalNotes.chronicDiseases ?? [],
+              allergies: medicalNotes.allergies ?? [],
+              currentMedication: medicalNotes.currentMedication ?? [],
+            }
+          : undefined,
         device: {
-            deviceId: device?.deviceId || undefined
-        }
-      } as IPatient);
+          deviceId: device?.deviceId || undefined,
+        },
+      } as unknown as IPatient);
+
     } else if (role === "caregiver") {
       user = await Caregiver.create({
-        name,
-        email,
-        password,
-        relation,
-        phone,
-        role: "caregiver",
-      } as ICaregiver);
+          ...baseFields,
+          role: "caregiver",
+          patients: [],
+      } as unknown as ICaregiver);
     } else {
-      user = await User.create({ name, email, password, role: "user" });
+      user = await User.create({
+        ...baseFields,
+        role: "user",
+      });
     }
 
     const verificationToken = crypto.randomBytes(20).toString("hex");
@@ -121,7 +148,6 @@ export const registerUser = asyncHandler(
 
     } catch (emailError) {
       console.error(emailError);
-
       res.status(500).json({
         message: "User created but failed to send verification email.",
       });
@@ -148,7 +174,7 @@ export const verifyUserAccount = asyncHandler(
     const user = await User.findOne({ verificationToken });
 
     if (!user) {
-      res.status(200).json({
+      res.status(400).json({
         message: "Account already verified or link expired."
       });
       return;
