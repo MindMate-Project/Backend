@@ -13,14 +13,34 @@ exports.getAllPatients = (0, express_async_handler_1.default)(async (req, res) =
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
-    const caregiver = await User_1.Caregiver.findById(user._id).populate("patients");
+    const caregiver = await User_1.Caregiver.findById(user._id).populate({
+        path: "patients.patient",
+        model: "User",
+        select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
+    });
     if (!caregiver) {
-        res.status(401);
+        res.status(404);
         throw new Error("Caregiver not found");
     }
+    const patients = caregiver.patients.map((ref) => {
+        const patient = ref.patient;
+        return {
+            patientId: patient._id,
+            name: patient.name,
+            email: patient.email,
+            dateOfBirth: patient.dateOfBirth,
+            gender: patient.gender,
+            address: patient.address,
+            phoneNumber: patient.phoneNumber,
+            medicalNotes: patient.medicalNotes,
+            device: patient.device,
+            relationship: ref.relationship,
+            connectedAt: ref.connectedAt
+        };
+    });
     res.status(200).json({
         message: "Patients retrieved successfully",
-        data: caregiver.patients
+        data: patients
     });
 });
 exports.getPatientInfo = (0, express_async_handler_1.default)(async (req, res) => {
@@ -34,16 +54,23 @@ exports.getPatientInfo = (0, express_async_handler_1.default)(async (req, res) =
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
-    const patient = await User_1.Patient.findById(patientId);
-    if (!patient) {
-        res.status(404);
-        throw new Error("Patient not found");
-    }
     const caregiverId = user._id;
-    const isAssignedToCaregiver = patient.caregivers.some((id) => id.equals(caregiverId));
+    const caregiver = await User_1.Caregiver.findById(caregiverId);
+    if (!caregiver) {
+        res.status(404);
+        throw new Error("Caregiver not found");
+    }
+    const isAssignedToCaregiver = caregiver.patients.some((ref) => ref.patient.equals(new mongoose_1.Types.ObjectId(patientId)));
     if (!isAssignedToCaregiver) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
+    }
+    const patient = await User_1.Patient
+        .findById(patientId)
+        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+    if (!patient) {
+        res.status(404);
+        throw new Error("Patient not found");
     }
     res.status(200).json({
         message: "Patient info retrieved successfully",
@@ -51,7 +78,7 @@ exports.getPatientInfo = (0, express_async_handler_1.default)(async (req, res) =
     });
 });
 exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (req, res) => {
-    const { patientEmail, relationship } = req.body; // ← add relationship
+    const { patientEmail, relationship } = req.body;
     const user = req.user;
     if (!user || user.role !== "caregiver") {
         res.status(403);
@@ -80,14 +107,14 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
     }
     if (existingRequest) {
         existingRequest.status = "pending";
-        existingRequest.relationship = relationship; // ← update relationship too
+        existingRequest.relationship = relationship;
         existingRequest.requestedAt = new Date();
         existingRequest.respondedAt = undefined;
     }
     else {
         patient.pendingCaregiverRequests.push({
             caregiver: caregiverId,
-            relationship, // ← store it
+            relationship,
             status: "pending",
             requestedAt: new Date()
         });
@@ -103,7 +130,7 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
         data: {
             caregiverId,
             caregiverName: caregiver.name,
-            relationship, // ← return it in response
+            relationship,
             patientId: patient._id,
             patientName: patient.name,
             patientEmail: patient.email,
@@ -112,7 +139,7 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
 });
 exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const { patientId } = req.params;
-    const { name, dateOfBirth, medicalNotes } = req.body;
+    const { name, dateOfBirth, gender, address, phoneNumber, medicalNotes } = req.body;
     const user = req.user;
     if (!mongoose_1.Types.ObjectId.isValid(patientId)) {
         res.status(400);
@@ -122,32 +149,49 @@ exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
+    const caregiverId = user._id;
+    // validate patient is in caregiver's array
+    const caregiver = await User_1.Caregiver.findById(caregiverId);
+    if (!caregiver) {
+        res.status(404);
+        throw new Error("Caregiver not found");
+    }
+    const isAssignedToCaregiver = caregiver.patients.some((ref) => ref.patient.equals(new mongoose_1.Types.ObjectId(patientId)));
+    if (!isAssignedToCaregiver) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
     const patient = await User_1.Patient.findById(patientId);
     if (!patient) {
         res.status(404);
         throw new Error("Patient not found");
     }
-    const caregiverId = user._id;
-    const isAssignedToCaregiver = patient.caregivers.some((id) => id.equals(caregiverId));
-    if (!isAssignedToCaregiver) {
-        res.status(403);
-        throw new Error("You are not assigned to this patient");
-    }
+    // build update object with only provided fields
     const updateFields = {};
-    if (name !== undefined) {
+    if (name !== undefined)
         updateFields.name = name;
-    }
-    if (dateOfBirth !== undefined) {
+    if (dateOfBirth !== undefined)
         updateFields.dateOfBirth = dateOfBirth;
-    }
+    if (gender !== undefined)
+        updateFields.gender = gender;
+    if (address !== undefined)
+        updateFields.address = address;
+    if (phoneNumber !== undefined)
+        updateFields.phoneNumber = phoneNumber;
     if (medicalNotes !== undefined) {
-        updateFields.medicalNotes = medicalNotes;
+        updateFields.medicalNotes = {
+            diagnosis: medicalNotes.diagnosis,
+            stage: medicalNotes.stage,
+            chronicDiseases: medicalNotes.chronicDiseases ?? patient.medicalNotes?.chronicDiseases ?? [],
+            allergies: medicalNotes.allergies ?? patient.medicalNotes?.allergies ?? [],
+            currentMedication: medicalNotes.currentMedication ?? patient.medicalNotes?.currentMedication ?? [],
+        };
     }
     if (Object.keys(updateFields).length === 0) {
         res.status(400);
         throw new Error("No fields provided to update");
     }
-    const updatedPatient = await User_1.Patient.findByIdAndUpdate(patient._id, updateFields, { new: true });
+    const updatedPatient = await User_1.Patient.findByIdAndUpdate(patient._id, { $set: updateFields }, { new: true, runValidators: true }).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
     res.status(200).json({
         message: "Patient information updated successfully",
         data: updatedPatient
@@ -164,31 +208,32 @@ exports.removePatientFromCaregiver = (0, express_async_handler_1.default)(async 
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
+    const caregiverId = user._id;
+    const caregiver = await User_1.Caregiver.findById(caregiverId);
+    if (!caregiver) {
+        res.status(404);
+        throw new Error("Caregiver not found");
+    }
+    const isAssignedToCaregiver = caregiver.patients.some((ref) => ref.patient.equals(new mongoose_1.Types.ObjectId(patientId)));
+    if (!isAssignedToCaregiver) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
     const patient = await User_1.Patient.findById(patientId);
     if (!patient) {
         res.status(404);
         throw new Error("Patient not found");
     }
-    const caregiverId = user._id;
-    const isAssignedToCaregiver = patient.caregivers.some((id) => id.equals(caregiverId));
-    if (!isAssignedToCaregiver) {
-        res.status(403);
-        throw new Error("You are not assigned to this patient");
-    }
-    const caregiver = await User_1.Caregiver.findByIdAndUpdate(user._id, { $pull: { patients: patient._id } }, { new: true });
-    const updatedPatient = await User_1.Patient.findByIdAndUpdate(patient._id, { $pull: { caregivers: user._id } }, { new: true });
-    await User_1.Patient.findByIdAndUpdate(patient._id, {
+    await User_1.Caregiver.findByIdAndUpdate(caregiverId, {
+        $pull: { patients: { patient: new mongoose_1.Types.ObjectId(patientId) } }
+    });
+    await User_1.Patient.findByIdAndUpdate(patientId, {
         $pull: {
-            pendingCaregiverRequests: {
-                caregiver: caregiverId
-            }
+            caregivers: caregiverId,
+            pendingCaregiverRequests: { caregiver: caregiverId }
         }
     });
     res.status(200).json({
-        message: "Patient removed from caregiver successfully",
-        data: {
-            caregiver,
-            patient: updatedPatient
-        }
+        message: "Patient removed from caregiver successfully"
     });
 });

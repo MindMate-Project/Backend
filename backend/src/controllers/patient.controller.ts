@@ -19,7 +19,7 @@ export const getAllCaregivers = asyncHandler(async (req: Request, res: Response)
     }
 
     const caregivers = await Caregiver.find({ _id: { $in: patient.caregivers } }).select(
-        "_id name email relation phone"
+        "_id name email phoneNumber"
     );
 
     res.status(200).json({
@@ -58,13 +58,13 @@ export const getCaregiverInfo = asyncHandler(async (req: Request, res: Response)
         throw new Error("You are not assigned to this caregiver");
     }
 
-    const caregiver = await Caregiver.findById(caregiverId);
+    const caregiver = await Caregiver.findById(caregiverId)
+        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
 
     if (!caregiver) {
         res.status(404);
         throw new Error("Caregiver not found");
     }
-
 
     res.status(200).json({
         message: "Caregiver info retrieved successfully",
@@ -82,7 +82,7 @@ export const getPendingCaregiverRequests = asyncHandler(async (req: Request, res
 
     const patient = await Patient.findById(user._id).populate(
         "pendingCaregiverRequests.caregiver",
-        "name email relation phone"
+        "name email phoneNumber"
     );
 
     if (!patient) {
@@ -100,11 +100,9 @@ export const getPendingCaregiverRequests = asyncHandler(async (req: Request, res
     });
 });
 
-
 export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: Response) => {
     const { caregiverId } = req.params as unknown as { caregiverId: Types.ObjectId };
     const { action } = req.body;
-
     const user = req.user;
 
     if (!Types.ObjectId.isValid(caregiverId)) {
@@ -120,11 +118,6 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
     if (!["accept", "reject"].includes(action)) {
         res.status(400);
         throw new Error("Valid action (accept/reject) is required");
-    }
-
-    if (!Types.ObjectId.isValid(caregiverId)) {
-        res.status(400);
-        throw new Error("Invalid caregiverId");
     }
 
     const patient = await Patient.findById(user._id);
@@ -147,7 +140,13 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
 
     if (action === "accept") {
         await Caregiver.findByIdAndUpdate(caregiverId, {
-            $addToSet: { patients: patient._id }
+            $addToSet: {
+                patients: {
+                    patient: patient._id,
+                    relationship: request.relationship,
+                    connectedAt: new Date()
+                }
+            }
         });
 
         const isAlreadyAssigned = patient.caregivers.some((id: Types.ObjectId) =>
@@ -158,13 +157,17 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
             patient.caregivers.push(caregiverId);
         }
 
-        request.status = "accepted";
-        request.respondedAt = new Date();
+        patient.pendingCaregiverRequests = patient.pendingCaregiverRequests.filter(
+            (req) => !req.caregiver.equals(caregiverId)
+        ) as any;
 
         await patient.save();
 
-        const updatedPatient = await Patient.findById(patient._id);
-        const updatedCaregiver = await Caregiver.findById(caregiverId);
+        const updatedPatient = await Patient.findById(patient._id)
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+
+        const updatedCaregiver = await Caregiver.findById(caregiverId)
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
 
         res.status(200).json({
             message: "Caregiver request accepted successfully",
@@ -176,10 +179,11 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
         return;
     }
 
-    request.status = "rejected";
-    request.respondedAt = new Date();
-
-    await patient.save();
+    await Patient.findByIdAndUpdate(user._id, {
+        $pull: {
+            pendingCaregiverRequests: { caregiver: caregiverId }
+        }
+    });
 
     res.status(200).json({
         message: "Caregiver request rejected successfully"
@@ -217,7 +221,7 @@ export const removeCaregiverFromPatient = asyncHandler(async (req: Request, res:
     }
 
     await Caregiver.findByIdAndUpdate(caregiverId, {
-        $pull: { patients: patient._id }
+        $pull: { patients: { patient: patient._id } }
     });
 
     patient.caregivers = patient.caregivers.filter((id: Types.ObjectId) => !id.equals(caregiverId));

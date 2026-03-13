@@ -57,6 +57,7 @@ const userSchema = new mongoose_1.Schema({
     },
     password: { type: String, required: true, select: false },
     fcmTokens: { type: [String], default: [] },
+    dateOfBirth: { type: Date },
     role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
     phoneNumber: {
         type: String,
@@ -95,7 +96,6 @@ exports.User = mongoose_1.default.model("User", userSchema);
 // ---- DISCRIMINATORS (NO GENERICS IN SCHEMA!) ----
 // Patient
 const patientSchema = new mongoose_1.Schema({
-    dateOfBirth: Date,
     medicalNotes: {
         diagnosis: { type: String },
         stage: { type: String },

@@ -10,6 +10,7 @@ export interface IBaseUser {
     password?: string;
     gender: "male" | "female";
     address: string;
+    dateOfBirth?: Date;
     phoneNumber: string;
     fcmTokens: string[];
     role: "user" | "patient" | "caregiver" | "admin";
@@ -36,7 +37,6 @@ export interface IMedicalNotes {
 }
 
 export interface IPatientProperties {
-    dateOfBirth?: Date;
     medicalNotes?: IMedicalNotes;
     caregivers: Types.ObjectId[];
     pendingCaregiverRequests: IPendingCaregiverRequest[];
@@ -111,6 +111,7 @@ const userSchema = new Schema(
         },
         password: { type: String, required: true, select: false },
         fcmTokens: { type: [String], default: [] },
+        dateOfBirth: { type: Date },
         role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
         phoneNumber: {
             type: String,
@@ -162,7 +163,6 @@ export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSch
 
 // Patient
 const patientSchema = new Schema({
-    dateOfBirth: Date,
     medicalNotes: {
         diagnosis: { type: String },
         stage: { type: String },
