@@ -26,8 +26,8 @@ const cors_1 = __importDefault(require("cors"));
 (0, reminderCron_1.startReminderCron)();
 const app = (0, express_1.default)();
 (0, swagger_1.setupSwagger)(app);
-app.use(express_1.default.json({ limit: "1mb" }));
-app.use(express_1.default.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express_1.default.json({ limit: "10mb" }));
+app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 app.use((0, cors_1.default)());
 const server = http_1.default.createServer(app);
 exports.io = (0, socket_service_1.setupLocationSocket)(server);
@@ -40,6 +40,13 @@ app.use("/api/reminders", reminder_routes_1.default);
 app.use("/api/alerts", alert_routes_1.default);
 app.use("/api/device", device_routes_1.default);
 app.use("/api/face/patient", face_routes_1.default);
+app.use((err, req, res, next) => {
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || "error";
+    res.status(err.statusCode).json({
+        message: err.message
+    });
+});
 const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
     res.send(`API is running on port ${PORT}`);

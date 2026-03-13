@@ -8,6 +8,10 @@ export interface IBaseUser {
     name: string;
     email: string;
     password?: string;
+    gender: "male" | "female";
+    address: string;
+    dateOfBirth?: Date;
+    phoneNumber: string;
     fcmTokens: string[];
     role: "user" | "patient" | "caregiver" | "admin";
     verificationToken?: string;
@@ -22,19 +26,30 @@ export interface IUserMethods {
     matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
-export interface IMongooseBaseUser extends IBaseUser, Document, IUserMethods {}
+export interface IMongooseBaseUser extends IBaseUser, Document, IUserMethods { }
+
+export interface IMedicalNotes {
+    diagnosis?: string;
+    stage?: string;
+    chronicDiseases?: string[];
+    allergies?: string[];
+    currentMedication?: string[];
+}
 
 export interface IPatientProperties {
-    dateOfBirth?: Date;
-    medicalNotes?: string;
+    medicalNotes?: IMedicalNotes;
     caregivers: Types.ObjectId[];
     pendingCaregiverRequests: IPendingCaregiverRequest[];
 }
 
+export interface IPatientRef {
+    patient: Types.ObjectId;
+    relationship: "son" | "daughter" | "sibling" | "medical_staff" | "other";
+    connectedAt?: Date;
+}
+
 export interface ICaregiverProperties {
-    relation: "son" | "daughter" | "sibling" | "medical_staff" | "other";
-    phone: string;
-    patients: Types.ObjectId[];
+    patients: IPatientRef[];
 }
 
 export interface IKnownPerson {
@@ -57,6 +72,7 @@ export interface IPatientDevice{
 
 export interface IPendingCaregiverRequest {
     caregiver: Types.ObjectId;
+    relationship: "son" | "daughter" | "sibling" | "medical_staff" | "other";
     status: "pending" | "accepted" | "rejected";
     requestedAt: Date;
     respondedAt?: Date;
@@ -94,7 +110,19 @@ const userSchema = new Schema(
             validate: [validator.isEmail, "Enter a valid email"]
         },
         password: { type: String, required: true, select: false },
-        fcmTokens: { type: [String], default: [] },        role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+        fcmTokens: { type: [String], default: [] },
+        dateOfBirth: { type: Date },
+        role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+        phoneNumber: {
+            type: String,
+            required: true,
+            validate: {
+                validator: (v: string) => /^\d{10,15}$/.test(v),
+                message: (props: any) => `${props.value} is not a valid phone number!`
+            }
+        },
+        address:{type:String, required: true},
+        gender:{type: String, required: true, enum:["male", "female"]},
         verificationToken: { type: String },
         isVerified: { type: Boolean, default: false },
         passwordResetToken: String,
@@ -135,8 +163,13 @@ export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSch
 
 // Patient
 const patientSchema = new Schema({
-    dateOfBirth: Date,
-    medicalNotes: String,
+    medicalNotes: {
+        diagnosis: { type: String },
+        stage: { type: String },
+        chronicDiseases: { type: [String], default: [] },
+        allergies: { type: [String], default: [] },
+        currentMedication: { type: [String], default: [] }
+    },
     caregivers: [{ type: Types.ObjectId, ref: "caregiver" }],
     
     pendingCaregiverRequests: [
@@ -144,6 +177,11 @@ const patientSchema = new Schema({
             caregiver: {
                 type: Types.ObjectId,
                 ref: "caregiver",
+                required: true
+            },
+            relationship: {
+                type: String,
+                enum: ["son", "daughter", "sibling", "medical_staff", "other"],
                 required: true
             },
             status: {
@@ -222,20 +260,24 @@ export const Patient = User.discriminator<IPatient, PatientModel>("patient", pat
 
 // Caregiver
 const caregiverSchema = new Schema({
-    relation: {
-        type: String,
-        enum: ["son", "daughter", "sibling", "medical_staff", "other"],
-        required: true
-    },
-    phone: {
-        type: String,
-        required: true,
-        validate: {
-            validator: (v: string) => /^\d{10,15}$/.test(v),
-            message: (props: any) => `${props.value} is not a valid phone number!`
+    patients: [
+        {
+            patient: {
+                type: Types.ObjectId,
+                ref: "patient",
+                required: true
+            },
+            relationship: {
+                type: String,
+                enum: ["son", "daughter", "sibling", "medical_staff", "other"],
+                required: true
+            },
+            connectedAt: {
+                type: Date,
+                default: Date.now
+            }
         }
-    },
-    patients: [{ type: Types.ObjectId, ref: "patient" }]
+    ]
 });
 
 export const Caregiver = User.discriminator<ICaregiver, CaregiverModel>("caregiver", caregiverSchema);

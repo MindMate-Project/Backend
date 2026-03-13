@@ -38,6 +38,15 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/device", deviceRoutes);
 app.use("/api/face/patient", faceRouter);
 
+app.use((err: any, req: any, res: any, next: any) => {
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || "error";
+    res.status(err.statusCode).json({
+        message: err.message
+    });
+  
+});
+
 const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
   res.send(`API is running on port ${PORT}`);
