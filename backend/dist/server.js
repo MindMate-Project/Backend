@@ -40,16 +40,22 @@ app.use("/api/reminders", reminder_routes_1.default);
 app.use("/api/alerts", alert_routes_1.default);
 app.use("/api/device", device_routes_1.default);
 app.use("/api/face/patient", face_routes_1.default);
+const PORT = process.env.PORT || 4000;
+app.get("/", (req, res) => {
+    res.send(`API is running on port ${PORT}`);
+});
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Route not found: ${req.originalUrl}`
+    });
+});
 app.use((err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
     res.status(err.statusCode).json({
         message: err.message
     });
-});
-const PORT = process.env.PORT || 4000;
-app.get("/", (req, res) => {
-    res.send(`API is running on port ${PORT}`);
 });
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

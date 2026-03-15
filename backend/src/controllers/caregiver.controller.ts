@@ -13,7 +13,7 @@ export const getAllPatients = asyncHandler(async (req: Request, res: Response) =
 
     const caregiver = await Caregiver.findById(user._id).populate({
         path: "patients.patient",
-        model: "User",
+        model: Patient,
         select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
     });
 
@@ -179,48 +179,64 @@ export const updatePatientInfo = asyncHandler(async (req: Request, res: Response
         gender,
         address,
         phoneNumber,
-        medicalNotes
+        medicalNotes,
+        relationship
     } = req.body;
     const user = req.user;
- 
+
     if (!Types.ObjectId.isValid(patientId)) {
         res.status(400);
         throw new Error("Invalid patient ID");
     }
- 
+
     if (!user || user.role !== "caregiver") {
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
- 
+
     const caregiverId = user._id as Types.ObjectId;
- 
-    // validate patient is in caregiver's array
+
     const caregiver = await Caregiver.findById(caregiverId);
     if (!caregiver) {
         res.status(404);
         throw new Error("Caregiver not found");
     }
- 
+
     const isAssignedToCaregiver = caregiver.patients.some((ref) =>
         ref.patient.equals(new Types.ObjectId(patientId))
     );
- 
+
     if (!isAssignedToCaregiver) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
     }
- 
+
     const patient = await Patient.findById(patientId);
- 
+
     if (!patient) {
         res.status(404);
         throw new Error("Patient not found");
     }
- 
-    // build update object with only provided fields
+
+    if (relationship !== undefined) {
+        const validRelationships = ["son", "daughter", "sibling", "medical_staff", "other"];
+        if (!validRelationships.includes(relationship)) {
+            res.status(400);
+            throw new Error("Invalid relationship value");
+        }
+
+        await Caregiver.findByIdAndUpdate(
+            caregiverId,
+            { $set: { "patients.$[ref].relationship": relationship } },
+            {
+                arrayFilters: [{ "ref.patient": new Types.ObjectId(patientId) }],
+                new: true
+            }
+        );
+    }
+
     const updateFields: Partial<IPatient> = {};
- 
+
     if (name !== undefined)        updateFields.name = name;
     if (dateOfBirth !== undefined)  updateFields.dateOfBirth = dateOfBirth;
     if (gender !== undefined)       updateFields.gender = gender;
@@ -235,18 +251,21 @@ export const updatePatientInfo = asyncHandler(async (req: Request, res: Response
             currentMedication: medicalNotes.currentMedication ?? patient.medicalNotes?.currentMedication ?? [],
         };
     }
- 
-    if (Object.keys(updateFields).length === 0) {
+
+    if (Object.keys(updateFields).length === 0 && relationship === undefined) {
         res.status(400);
         throw new Error("No fields provided to update");
     }
- 
-    const updatedPatient = await Patient.findByIdAndUpdate(
-        patient._id,
-        { $set: updateFields },
-        { new: true, runValidators: true }
-    ).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
- 
+
+    const updatedPatient = Object.keys(updateFields).length > 0
+        ? await Patient.findByIdAndUpdate(
+            patient._id,
+            { $set: updateFields },
+            { new: true, runValidators: true }
+          ).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+        : await Patient.findById(patient._id)
+          .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+
     res.status(200).json({
         message: "Patient information updated successfully",
         data: updatedPatient

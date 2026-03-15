@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUserInfo = exports.getUserInfo = void 0;
 const User_1 = require("../models/User");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
+const caregiver_controller_1 = require("./caregiver.controller");
 exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const user = req.user;
     if (!user) {
@@ -13,19 +14,29 @@ exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
         throw new Error("User not authenticated");
     }
     if (user.role === "patient") {
-        const patient = await User_1.Patient.findById(user._id).populate("caregivers", "name email phoneNumber");
+        const patient = await User_1.Patient
+            .findById(user._id)
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+            .populate("caregivers", "name email phoneNumber");
         if (!patient) {
             res.status(404);
             throw new Error("Patient not found");
         }
         res.status(200).json({
             message: "User info retrieved successfully",
-            data: patient
+            data: caregiver_controller_1.removePatientFromCaregiver
         });
         return;
     }
     else if (user.role === "caregiver") {
-        const caregiver = await User_1.Caregiver.findById(user._id).populate("patients", "name email dateOfBirth medicalNotes");
+        const caregiver = await User_1.Caregiver
+            .findById(user._id)
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+            .populate({
+            path: "patients.patient",
+            model: "User",
+            select: "name email dateOfBirth medicalNotes"
+        });
         if (!caregiver) {
             res.status(404);
             throw new Error("Caregiver not found");
