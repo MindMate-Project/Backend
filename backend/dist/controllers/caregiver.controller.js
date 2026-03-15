@@ -15,7 +15,7 @@ exports.getAllPatients = (0, express_async_handler_1.default)(async (req, res) =
     }
     const caregiver = await User_1.Caregiver.findById(user._id).populate({
         path: "patients.patient",
-        model: "User",
+        model: User_1.Patient,
         select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
     });
     if (!caregiver) {
@@ -139,7 +139,7 @@ exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (r
 });
 exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const { patientId } = req.params;
-    const { name, dateOfBirth, gender, address, phoneNumber, medicalNotes } = req.body;
+    const { name, dateOfBirth, gender, address, phoneNumber, medicalNotes, relationship } = req.body;
     const user = req.user;
     if (!mongoose_1.Types.ObjectId.isValid(patientId)) {
         res.status(400);
@@ -150,7 +150,6 @@ exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res
         throw new Error("Only caregivers can access this resource");
     }
     const caregiverId = user._id;
-    // validate patient is in caregiver's array
     const caregiver = await User_1.Caregiver.findById(caregiverId);
     if (!caregiver) {
         res.status(404);
@@ -166,7 +165,17 @@ exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res
         res.status(404);
         throw new Error("Patient not found");
     }
-    // build update object with only provided fields
+    if (relationship !== undefined) {
+        const validRelationships = ["son", "daughter", "sibling", "medical_staff", "other"];
+        if (!validRelationships.includes(relationship)) {
+            res.status(400);
+            throw new Error("Invalid relationship value");
+        }
+        await User_1.Caregiver.findByIdAndUpdate(caregiverId, { $set: { "patients.$[ref].relationship": relationship } }, {
+            arrayFilters: [{ "ref.patient": new mongoose_1.Types.ObjectId(patientId) }],
+            new: true
+        });
+    }
     const updateFields = {};
     if (name !== undefined)
         updateFields.name = name;
@@ -187,11 +196,14 @@ exports.updatePatientInfo = (0, express_async_handler_1.default)(async (req, res
             currentMedication: medicalNotes.currentMedication ?? patient.medicalNotes?.currentMedication ?? [],
         };
     }
-    if (Object.keys(updateFields).length === 0) {
+    if (Object.keys(updateFields).length === 0 && relationship === undefined) {
         res.status(400);
         throw new Error("No fields provided to update");
     }
-    const updatedPatient = await User_1.Patient.findByIdAndUpdate(patient._id, { $set: updateFields }, { new: true, runValidators: true }).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+    const updatedPatient = Object.keys(updateFields).length > 0
+        ? await User_1.Patient.findByIdAndUpdate(patient._id, { $set: updateFields }, { new: true, runValidators: true }).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+        : await User_1.Patient.findById(patient._id)
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
     res.status(200).json({
         message: "Patient information updated successfully",
         data: updatedPatient
