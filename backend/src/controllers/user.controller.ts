@@ -24,7 +24,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
         }
         res.status(200).json({
             message: "User info retrieved successfully",
-            data: removePatientFromCaregiver
+            data: patient
         });
         return;
 

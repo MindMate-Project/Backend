@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUserInfo = exports.getUserInfo = void 0;
 const User_1 = require("../models/User");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
-const caregiver_controller_1 = require("./caregiver.controller");
 exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const user = req.user;
     if (!user) {
@@ -24,7 +23,7 @@ exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
         }
         res.status(200).json({
             message: "User info retrieved successfully",
-            data: caregiver_controller_1.removePatientFromCaregiver
+            data: patient
         });
         return;
     }

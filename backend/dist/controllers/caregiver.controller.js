@@ -54,27 +54,41 @@ exports.getPatientInfo = (0, express_async_handler_1.default)(async (req, res) =
         res.status(403);
         throw new Error("Only caregivers can access this resource");
     }
-    const caregiverId = user._id;
-    const caregiver = await User_1.Caregiver.findById(caregiverId);
+    const caregiver = await User_1.Caregiver.findById(user._id).populate({
+        path: "patients.patient",
+        model: User_1.Patient,
+        select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
+    });
     if (!caregiver) {
         res.status(404);
         throw new Error("Caregiver not found");
     }
-    const isAssignedToCaregiver = caregiver.patients.some((ref) => ref.patient.equals(new mongoose_1.Types.ObjectId(patientId)));
-    if (!isAssignedToCaregiver) {
+    const patientRef = caregiver.patients
+        .filter((ref) => ref.patient != null)
+        .find((ref) => {
+        const p = ref.patient;
+        return p._id.toString() === patientId;
+    });
+    if (!patientRef) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
     }
-    const patient = await User_1.Patient
-        .findById(patientId)
-        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
-    if (!patient) {
-        res.status(404);
-        throw new Error("Patient not found");
-    }
+    const p = patientRef.patient;
     res.status(200).json({
         message: "Patient info retrieved successfully",
-        data: patient
+        data: {
+            patientId: p._id,
+            name: p.name,
+            email: p.email,
+            dateOfBirth: p.dateOfBirth,
+            gender: p.gender,
+            address: p.address,
+            phoneNumber: p.phoneNumber,
+            medicalNotes: p.medicalNotes,
+            device: p.device,
+            relationship: patientRef.relationship,
+            connectedAt: patientRef.connectedAt
+        }
     });
 });
 exports.assignPatientToCaregiver = (0, express_async_handler_1.default)(async (req, res) => {

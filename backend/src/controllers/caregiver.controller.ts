@@ -59,36 +59,46 @@ export const getPatientInfo = asyncHandler(async (req: Request, res: Response) =
         throw new Error("Only caregivers can access this resource");
     }
  
-    const caregiverId = user._id as Types.ObjectId;
- 
-    const caregiver = await Caregiver.findById(caregiverId);
+    const caregiver = await Caregiver.findById(user._id).populate({
+        path: "patients.patient",
+        model: Patient,
+        select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
+    });
  
     if (!caregiver) {
         res.status(404);
         throw new Error("Caregiver not found");
     }
  
-    const isAssignedToCaregiver = caregiver.patients.some((ref) =>
-        ref.patient.equals(new Types.ObjectId(patientId))
-    );
+    const patientRef = caregiver.patients
+        .filter((ref) => ref.patient != null)
+        .find((ref) => {
+            const p = ref.patient as any;
+            return p._id.toString() === patientId;
+        });
  
-    if (!isAssignedToCaregiver) {
+    if (!patientRef) {
         res.status(403);
         throw new Error("You are not assigned to this patient");
     }
  
-    const patient = await Patient
-        .findById(patientId)
-        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
- 
-    if (!patient) {
-        res.status(404);
-        throw new Error("Patient not found");
-    }
+    const p = patientRef.patient as any;
  
     res.status(200).json({
         message: "Patient info retrieved successfully",
-        data: patient
+        data: {
+            patientId: p._id,
+            name: p.name,
+            email: p.email,
+            dateOfBirth: p.dateOfBirth,
+            gender: p.gender,
+            address: p.address,
+            phoneNumber: p.phoneNumber,
+            medicalNotes: p.medicalNotes,
+            device: p.device,
+            relationship: patientRef.relationship,
+            connectedAt: patientRef.connectedAt
+        }
     });
 });
 
