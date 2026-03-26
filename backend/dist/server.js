@@ -16,6 +16,7 @@ const patient_routes_1 = __importDefault(require("./routes/patient.routes"));
 const reminder_routes_1 = __importDefault(require("./routes/reminder.routes"));
 const alert_routes_1 = __importDefault(require("./routes/alert.routes"));
 const face_routes_1 = __importDefault(require("./routes/face.routes"));
+const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const swagger_1 = require("./config/swagger");
 const http_1 = __importDefault(require("http"));
 const IoT_service_1 = require("./services/IoT.service");
@@ -33,6 +34,7 @@ const server = http_1.default.createServer(app);
 exports.io = (0, socket_service_1.setupLocationSocket)(server);
 const iotService = new IoT_service_1.IoTService();
 app.use("/api/auth", auth_routes_1.default);
+app.use("/api/users", user_routes_1.default);
 app.use("/api/memories", memoryItem_routes_1.default);
 app.use("/api/caregiver", caregiver_routes_1.default);
 app.use("/api/patient", patient_routes_1.default);
@@ -47,14 +49,14 @@ app.get("/", (req, res) => {
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: `Route not found: ${req.originalUrl}`
+        message: `Route not found: ${req.originalUrl}`,
     });
 });
 app.use((err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
     res.status(err.statusCode).json({
-        message: err.message
+        message: err.message,
     });
 });
 server.listen(PORT, () => {

@@ -3,9 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserInfo = exports.getUserInfo = void 0;
+exports.deleteProfilePicture = exports.uploadProfilePicture = exports.updateUserInfo = exports.getUserInfo = void 0;
 const User_1 = require("../models/User");
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
+const cloudinary_1 = __importDefault(require("../config/cloudinary"));
+// ----------------------------------------------------------------------
 exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const user = req.user;
     if (!user) {
@@ -49,6 +51,7 @@ exports.getUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
     res.status(400);
     throw new Error("Invalid user role");
 });
+// ----------------------------------------------------------------------
 exports.updateUserInfo = (0, express_async_handler_1.default)(async (req, res) => {
     const user = req.user;
     const { name, phoneNumber, medicalNotes } = req.body;
@@ -88,4 +91,71 @@ exports.updateUserInfo = (0, express_async_handler_1.default)(async (req, res) =
     }
     res.status(400);
     throw new Error("Invalid user role");
+});
+// ----------------------------------------------------------------------
+/**
+ * @desc Upload or update profile picture
+ * @route POST /api/users/profile-picture
+ * @access Private (all roles)
+ */
+exports.uploadProfilePicture = (0, express_async_handler_1.default)(async (req, res) => {
+    const user = req.user;
+    const file = req.file;
+    if (!user) {
+        res.status(401);
+        throw new Error("Not authenticated");
+    }
+    if (!file) {
+        res.status(400);
+        throw new Error("No image file provided");
+    }
+    // Delete old picture from Cloudinary if it exists
+    const existingUser = await User_1.User.findById(user._id);
+    if (existingUser?.profilePicture_public_id) {
+        await cloudinary_1.default.uploader.destroy(existingUser.profilePicture_public_id, {
+            resource_type: "image",
+        });
+    }
+    const updatedUser = await User_1.User.findByIdAndUpdate(user._id, {
+        profilePicture: file.path,
+        profilePicture_public_id: file.filename,
+    }, { new: true }).select("-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken");
+    res.status(200).json({
+        message: "Profile picture updated successfully",
+        data: {
+            profilePicture: updatedUser?.profilePicture,
+        },
+    });
+});
+// ----------------------------------------------------------------------
+/**
+ * @desc Delete profile picture
+ * @route DELETE /api/users/profile-picture
+ * @access Private (all roles)
+ */
+exports.deleteProfilePicture = (0, express_async_handler_1.default)(async (req, res) => {
+    const user = req.user;
+    if (!user) {
+        res.status(401);
+        throw new Error("Not authenticated");
+    }
+    const existingUser = await User_1.User.findById(user._id);
+    if (!existingUser) {
+        res.status(404);
+        throw new Error("User not found");
+    }
+    if (!existingUser.profilePicture_public_id) {
+        res.status(400);
+        throw new Error("No profile picture to delete");
+    }
+    await cloudinary_1.default.uploader.destroy(existingUser.profilePicture_public_id, {
+        resource_type: "image",
+    });
+    await User_1.User.findByIdAndUpdate(user._id, {
+        profilePicture: null,
+        profilePicture_public_id: null,
+    });
+    res.status(200).json({
+        message: "Profile picture deleted successfully",
+    });
 });

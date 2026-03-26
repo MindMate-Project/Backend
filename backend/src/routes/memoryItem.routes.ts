@@ -7,21 +7,20 @@ import {
   deleteMemory,
   searchMemoryByTags,
 } from "../controllers/memoryItem.controller";
-
 import { protect } from "../middlewares/auth.middleware";
 import { authorize } from "../middlewares/authorize.middleware";
+import { handleMemoryUpload } from "../middlewares/uploadMemory.middleware";
 
 const router = express.Router();
 
-// Create memory (caregiver or admin)
 router.post(
   "/",
   protect,
   authorize("caregiver", "admin"),
+  handleMemoryUpload,       // <-- Cloudinary upload happens here
   createMemory
 );
 
-// Search memories
 router.get(
   "/search",
   protect,
@@ -29,7 +28,6 @@ router.get(
   searchMemoryByTags
 );
 
-// Get memories for a patient
 router.get(
   "/patient/:patientId",
   protect,
@@ -39,20 +37,8 @@ router.get(
 
 router
   .route("/:id")
-  .get(
-    protect,
-    authorize("patient", "caregiver", "admin"),
-    getMemoryById
-  )
-  .put(
-    protect,
-    authorize("caregiver", "admin"),
-    updateMemory
-  )
-  .delete(
-    protect,
-    authorize("caregiver", "admin"),
-    deleteMemory
-  );
+  .get(protect, authorize("patient", "caregiver", "admin"), getMemoryById)
+  .put(protect, authorize("caregiver", "admin"), updateMemory)
+  .delete(protect, authorize("caregiver", "admin"), deleteMemory);
 
 export default router;

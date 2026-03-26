@@ -19,7 +19,8 @@ export interface IBaseUser {
     passwordResetToken?: string;
     passwordResetExpires?: Date;
     resetSessionToken?: string;
-
+    profilePicture?: string;
+    profilePicture_public_id?: string;
 }
 
 export interface IUserMethods {
@@ -62,7 +63,7 @@ export interface IKnownPerson {
     updated_at?: Date;
 }
 
-export interface IPatientDevice{
+export interface IPatientDevice {
     deviceId: string;
     latitude: number;
     longitude: number;
@@ -99,7 +100,6 @@ const baseOptions = {
     timestamps: true
 } as const;
 
-// IMPORTANT: REMOVE ALL GENERICS HERE ❗
 const userSchema = new Schema(
     {
         name: { type: String, required: true },
@@ -112,7 +112,12 @@ const userSchema = new Schema(
         password: { type: String, required: true, select: false },
         fcmTokens: { type: [String], default: [] },
         dateOfBirth: { type: Date },
-        role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+        role: {
+            type: String,
+            required: true,
+            enum: ["user", "patient", "caregiver", "admin"],
+            default: "user"
+        },
         phoneNumber: {
             type: String,
             required: true,
@@ -121,13 +126,21 @@ const userSchema = new Schema(
                 message: (props: any) => `${props.value} is not a valid phone number!`
             }
         },
-        address:{type:String, required: true},
-        gender:{type: String, required: true, enum:["male", "female"]},
+        address: { type: String, required: true },
+        gender: { type: String, required: true, enum: ["male", "female"] },
         verificationToken: { type: String },
         isVerified: { type: Boolean, default: false },
         passwordResetToken: String,
         passwordResetExpires: Date,
-        resetSessionToken:String 
+        resetSessionToken: String,
+        profilePicture: {
+            type: String,
+            default: null,
+        },
+        profilePicture_public_id: {
+            type: String,
+            default: null,
+        },
     },
     baseOptions
 );
@@ -135,14 +148,11 @@ const userSchema = new Schema(
 // ---- PASSWORD HOOK ----
 
 userSchema.pre<IMongooseBaseUser>("save", async function (next) {
-
     if (!this.isModified("password")) return next();
-
     if (this.password) {
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
     }
-
     next();
 });
 
@@ -153,13 +163,11 @@ userSchema.methods.matchPassword = async function (enteredPassword: string) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-
-
 // ---- BASE MODEL ----
 
 export const User = mongoose.model<IMongooseBaseUser, UserModel>("User", userSchema);
 
-// ---- DISCRIMINATORS (NO GENERICS IN SCHEMA!) ----
+// ---- DISCRIMINATORS ----
 
 // Patient
 const patientSchema = new Schema({
@@ -171,7 +179,6 @@ const patientSchema = new Schema({
         currentMedication: { type: [String], default: [] }
     },
     caregivers: [{ type: Types.ObjectId, ref: "caregiver" }],
-    
     pendingCaregiverRequests: [
         {
             caregiver: {
@@ -198,61 +205,23 @@ const patientSchema = new Schema({
             }
         }
     ],
-
     known_people: [
-    {
-        firstName: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        lastName: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        relationship: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        average_embedding: {
-            type: [Number],
-            required: true
-        },
-        embeddings_count: {
-            type: Number,
-            required: true,
-            default: 1
-        },
-        created_at: {
-            type: Date,
-            default: Date.now
-        },
-        updated_at: {
-            type: Date,
-            default: Date.now
+        {
+            firstName: { type: String, required: true, trim: true },
+            lastName: { type: String, required: true, trim: true },
+            relationship: { type: String, required: true, trim: true },
+            average_embedding: { type: [Number], required: true },
+            embeddings_count: { type: Number, required: true, default: 1 },
+            created_at: { type: Date, default: Date.now },
+            updated_at: { type: Date, default: Date.now }
         }
-    }
-],
-    
+    ],
     device: {
-        deviceId: {
-            type: String,
-        },
-        latitude: {
-            type: Number,
-        },
-        longitude: {
-            type: Number,
-        },
-        timestamp:{
-            type: Date,
-            default: Date.now
-        },
-        battery: {
-            type: Number
-        }
+        deviceId: { type: String },
+        latitude: { type: Number },
+        longitude: { type: Number },
+        timestamp: { type: Date, default: Date.now },
+        battery: { type: Number }
     }
 });
 

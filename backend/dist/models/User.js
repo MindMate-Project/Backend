@@ -46,7 +46,6 @@ const baseOptions = {
     collection: "users",
     timestamps: true
 };
-// IMPORTANT: REMOVE ALL GENERICS HERE ❗
 const userSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     email: {
@@ -58,7 +57,12 @@ const userSchema = new mongoose_1.Schema({
     password: { type: String, required: true, select: false },
     fcmTokens: { type: [String], default: [] },
     dateOfBirth: { type: Date },
-    role: { type: String, required: true, enum: ["user", "patient", "caregiver", "admin"], default: "user" },
+    role: {
+        type: String,
+        required: true,
+        enum: ["user", "patient", "caregiver", "admin"],
+        default: "user"
+    },
     phoneNumber: {
         type: String,
         required: true,
@@ -73,7 +77,15 @@ const userSchema = new mongoose_1.Schema({
     isVerified: { type: Boolean, default: false },
     passwordResetToken: String,
     passwordResetExpires: Date,
-    resetSessionToken: String
+    resetSessionToken: String,
+    profilePicture: {
+        type: String,
+        default: null,
+    },
+    profilePicture_public_id: {
+        type: String,
+        default: null,
+    },
 }, baseOptions);
 // ---- PASSWORD HOOK ----
 userSchema.pre("save", async function (next) {
@@ -93,7 +105,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 // ---- BASE MODEL ----
 exports.User = mongoose_1.default.model("User", userSchema);
-// ---- DISCRIMINATORS (NO GENERICS IN SCHEMA!) ----
+// ---- DISCRIMINATORS ----
 // Patient
 const patientSchema = new mongoose_1.Schema({
     medicalNotes: {
@@ -132,57 +144,21 @@ const patientSchema = new mongoose_1.Schema({
     ],
     known_people: [
         {
-            firstName: {
-                type: String,
-                required: true,
-                trim: true
-            },
-            lastName: {
-                type: String,
-                required: true,
-                trim: true
-            },
-            relationship: {
-                type: String,
-                required: true,
-                trim: true
-            },
-            average_embedding: {
-                type: [Number],
-                required: true
-            },
-            embeddings_count: {
-                type: Number,
-                required: true,
-                default: 1
-            },
-            created_at: {
-                type: Date,
-                default: Date.now
-            },
-            updated_at: {
-                type: Date,
-                default: Date.now
-            }
+            firstName: { type: String, required: true, trim: true },
+            lastName: { type: String, required: true, trim: true },
+            relationship: { type: String, required: true, trim: true },
+            average_embedding: { type: [Number], required: true },
+            embeddings_count: { type: Number, required: true, default: 1 },
+            created_at: { type: Date, default: Date.now },
+            updated_at: { type: Date, default: Date.now }
         }
     ],
     device: {
-        deviceId: {
-            type: String,
-        },
-        latitude: {
-            type: Number,
-        },
-        longitude: {
-            type: Number,
-        },
-        timestamp: {
-            type: Date,
-            default: Date.now
-        },
-        battery: {
-            type: Number
-        }
+        deviceId: { type: String },
+        latitude: { type: Number },
+        longitude: { type: Number },
+        timestamp: { type: Date, default: Date.now },
+        battery: { type: Number }
     }
 });
 exports.Patient = exports.User.discriminator("patient", patientSchema);
