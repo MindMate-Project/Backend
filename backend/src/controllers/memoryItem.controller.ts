@@ -11,7 +11,7 @@ import cloudinary from "../config/cloudinary";
  * @access Private (Caregiver / Admin)
  */
 export const createMemory = asyncHandler(async (req: Request, res: Response) => {
-  const { patient_id, type, title, caption, tags } = req.body;
+  const { patient_id, type, title, caption, relation, date, tags } = req.body;
   const file = req.file as any;
 
   if (!patient_id) {
@@ -44,6 +44,8 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
     type,
     title,
     caption,
+    relation: relation || null,
+    date: date ? new Date(date) : null,
     file_url: file ? file.path : null,
     cloudinary_public_id: file ? file.filename : null,
     tags: tags
@@ -98,12 +100,12 @@ export const getMemoryById = asyncHandler(async (req: Request, res: Response) =>
 // ----------------------------------------------------------------------
 
 /**
- * @desc Update memory title and caption only
+ * @desc Update memory — title, caption, relation, date, tags
  * @route PUT /api/memories/:id
  * @access Private (Caregiver / Admin)
  */
 export const updateMemory = asyncHandler(async (req: Request, res: Response) => {
-  const { title, caption } = req.body;
+  const { title, caption, relation, date, tags } = req.body;
 
   const memory = await MemoryItem.findById(req.params.id);
 
@@ -112,13 +114,20 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error("Memory not found");
   }
 
-  if (!title && !caption) {
+  if (!title && !caption && !relation && !date && !tags) {
     res.status(400);
-    throw new Error("At least one field (title or caption) is required to update");
+    throw new Error("At least one field is required to update");
   }
 
-  if (title) memory.title = title;
-  if (caption) memory.caption = caption;
+  if (title !== undefined)    memory.title    = title;
+  if (caption !== undefined)  memory.caption  = caption;
+  if (relation !== undefined) memory.relation = relation;
+  if (date !== undefined)     memory.date     = new Date(date);
+  if (tags !== undefined) {
+    memory.tags = Array.isArray(tags)
+      ? tags
+      : tags.split(",").map((t: string) => t.trim());
+  }
 
   const updatedMemory = await memory.save();
 

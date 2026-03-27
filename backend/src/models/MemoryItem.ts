@@ -5,6 +5,8 @@ export interface IMemoryItem extends Document {
   type: "photo" | "video" | "text";
   title: string;
   caption: string;
+  relation?: string;
+  date?: Date;
   file_url?: string;
   cloudinary_public_id?: string;
   tags: string[];
@@ -31,6 +33,15 @@ const MemoryItemSchema = new Schema<IMemoryItem>(
       type: String,
       required: true,
       trim: true,
+    },
+    relation: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    date: {
+      type: Date,
+      default: null,
     },
     file_url: {
       type: String,
