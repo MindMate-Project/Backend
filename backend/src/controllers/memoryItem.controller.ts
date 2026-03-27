@@ -11,48 +11,46 @@ import cloudinary from "../config/cloudinary";
  * @access Private (Caregiver / Admin)
  */
 export const createMemory = asyncHandler(async (req: Request, res: Response) => {
-  const { patient_id, tags } = req.body;
-  const file = req.file as any; // multer-storage-cloudinary attaches cloudinary info here
+  const { patient_id, type, title, caption, tags } = req.body;
+  const file = req.file as any;
 
   if (!patient_id) {
     res.status(400);
     throw new Error("patient_id is required");
   }
 
-  // If type is "text", no file is needed — content_ref is just the text itself
-  const type = req.body.type as "photo" | "video" | "text";
-
   if (!type) {
     res.status(400);
     throw new Error("type is required (photo, video, or text)");
   }
 
-  let content_ref: string;
+  if (!title) {
+    res.status(400);
+    throw new Error("title is required");
+  }
 
-  if (type === "text") {
-    // For text memories, content_ref comes directly from body
-    if (!req.body.content_ref) {
-      res.status(400);
-      throw new Error("content_ref is required for text memories");
-    }
-    content_ref = req.body.content_ref;
-  } else {
-    // For photo/video, a file must be uploaded
-    if (!file) {
-      res.status(400);
-      throw new Error(`A file is required for ${type} memories`);
-    }
-    // Cloudinary storage puts the secure URL here
-    content_ref = file.path;
+  if (!caption) {
+    res.status(400);
+    throw new Error("caption is required");
+  }
+
+  if ((type === "photo" || type === "video") && !file) {
+    res.status(400);
+    throw new Error(`A file is required for ${type} memories`);
   }
 
   const memory = await MemoryItem.create({
     patient_id,
     type,
-    content_ref,
-    tags: tags ? (Array.isArray(tags) ? tags : tags.split(",").map((t: string) => t.trim())) : [],
-    // Store cloudinary public_id so we can delete it later
-    cloudinary_public_id: file?.filename ?? null,
+    title,
+    caption,
+    file_url: file ? file.path : null,
+    cloudinary_public_id: file ? file.filename : null,
+    tags: tags
+      ? Array.isArray(tags)
+        ? tags
+        : tags.split(",").map((t: string) => t.trim())
+      : [],
   });
 
   res.status(201).json({
@@ -100,11 +98,13 @@ export const getMemoryById = asyncHandler(async (req: Request, res: Response) =>
 // ----------------------------------------------------------------------
 
 /**
- * @desc Update memory
+ * @desc Update memory title and caption only
  * @route PUT /api/memories/:id
- * @access Private
+ * @access Private (Caregiver / Admin)
  */
 export const updateMemory = asyncHandler(async (req: Request, res: Response) => {
+  const { title, caption } = req.body;
+
   const memory = await MemoryItem.findById(req.params.id);
 
   if (!memory) {
@@ -112,9 +112,13 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error("Memory not found");
   }
 
-  memory.type = req.body.type || memory.type;
-  memory.content_ref = req.body.content_ref || memory.content_ref;
-  memory.tags = req.body.tags || memory.tags;
+  if (!title && !caption) {
+    res.status(400);
+    throw new Error("At least one field (title or caption) is required to update");
+  }
+
+  if (title) memory.title = title;
+  if (caption) memory.caption = caption;
 
   const updatedMemory = await memory.save();
 
@@ -129,17 +133,16 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
 /**
  * @desc Delete memory — also removes file from Cloudinary
  * @route DELETE /api/memories/:id
- * @access Private
+ * @access Private (Caregiver / Admin)
  */
 export const deleteMemory = asyncHandler(async (req: Request, res: Response) => {
-  const memory = await MemoryItem.findById(req.params.id) as any;
+  const memory = await MemoryItem.findById(req.params.id);
 
   if (!memory) {
     res.status(404);
     throw new Error("Memory not found");
   }
 
-  // Delete from Cloudinary if a public_id was stored
   if (memory.cloudinary_public_id) {
     const resourceType = memory.type === "video" ? "video" : "image";
     await cloudinary.uploader.destroy(memory.cloudinary_public_id, {
