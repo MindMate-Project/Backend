@@ -10,14 +10,14 @@ const storage = new CloudinaryStorage({
     return {
       folder: "zhimar/memories",
       resource_type: isVideo ? "video" : "image",
-      allowed_formats: ["jpg", "jpeg", "png", "webp", "mp4", "mov", "avi"],
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "mp4", "mov", "avi", "webm"],
     };
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+  limits: { fileSize: 50 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     const isImage = file.mimetype.startsWith("image/");
     const isVideo = file.mimetype.startsWith("video/");
