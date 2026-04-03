@@ -1,13 +1,10 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const uploadProfilePicture_middleware_1 = require("../middlewares/uploadProfilePicture.middleware");
-const user_controller_1 = require("../controllers/user.controller");
-const router = express_1.default.Router();
+import express from "express";
+import { protect } from "../middlewares/auth.middleware";
+import { handleProfilePictureUpload } from "../middlewares/uploadProfilePicture.middleware";
+import { uploadProfilePicture, deleteProfilePicture } from "../controllers/user.controller";
+
+const router = express.Router();
+
 /**
  * @swagger
  * /api/users/profile-picture:
@@ -54,6 +51,18 @@ const router = express_1.default.Router();
  *       401:
  *         description: Unauthorized
  */
-router.post("/profile-picture", auth_middleware_1.protect, uploadProfilePicture_middleware_1.handleProfilePictureUpload, user_controller_1.uploadProfilePicture);
-router.delete("/profile-picture", auth_middleware_1.protect, user_controller_1.deleteProfilePicture);
-exports.default = router;
+
+router.post(
+    "/profile-picture",
+    protect,
+    handleProfilePictureUpload,
+    uploadProfilePicture
+);
+
+router.delete(
+    "/profile-picture",
+    protect,
+    deleteProfilePicture
+);
+
+export default router;

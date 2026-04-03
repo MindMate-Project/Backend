@@ -1,32 +1,63 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import MemoryItem from "../models/MemoryItem";
+import cloudinary from "../config/cloudinary";
 
 // ----------------------------------------------------------------------
 
 /**
  * @desc Create new memory item
  * @route POST /api/memories
- * @access Private (Patient / Caregiver)
+ * @access Private (Caregiver / Admin)
  */
 export const createMemory = asyncHandler(async (req: Request, res: Response) => {
-  const { patient_id, type, content_ref, tags } = req.body;
+  const { patient_id, type, title, caption, relation, date, tags } = req.body;
+  const file = req.file as any;
 
-  if (!patient_id || !type || !content_ref) {
+  if (!patient_id) {
     res.status(400);
-    throw new Error("Missing required fields");
+    throw new Error("patient_id is required");
+  }
+
+  if (!type) {
+    res.status(400);
+    throw new Error("type is required (photo, video, or text)");
+  }
+
+  if (!title) {
+    res.status(400);
+    throw new Error("title is required");
+  }
+
+  if (!caption) {
+    res.status(400);
+    throw new Error("caption is required");
+  }
+
+  if ((type === "photo" || type === "video") && !file) {
+    res.status(400);
+    throw new Error(`A file is required for ${type} memories`);
   }
 
   const memory = await MemoryItem.create({
     patient_id,
     type,
-    content_ref,
-    tags
+    title,
+    caption,
+    relation: relation || null,
+    date: date ? new Date(date) : null,
+    file_url: file ? file.path : null,
+    cloudinary_public_id: file ? file.filename : null,
+    tags: tags
+      ? Array.isArray(tags)
+        ? tags
+        : tags.split(",").map((t: string) => t.trim())
+      : [],
   });
 
   res.status(201).json({
     message: "Memory created successfully",
-    data: memory
+    data: memory,
   });
 });
 
@@ -34,7 +65,7 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
 
 /**
  * @desc Get all memories for a patient
- * @route GET /api/memories/:patientId
+ * @route GET /api/memories/patient/:patientId
  * @access Private
  */
 export const getPatientMemories = asyncHandler(async (req: Request, res: Response) => {
@@ -44,7 +75,7 @@ export const getPatientMemories = asyncHandler(async (req: Request, res: Respons
 
   res.status(200).json({
     results: memories.length,
-    data: memories
+    data: memories,
   });
 });
 
@@ -52,7 +83,7 @@ export const getPatientMemories = asyncHandler(async (req: Request, res: Respons
 
 /**
  * @desc Get single memory by ID
- * @route GET /api/memory/:id
+ * @route GET /api/memories/:id
  * @access Private
  */
 export const getMemoryById = asyncHandler(async (req: Request, res: Response) => {
@@ -63,19 +94,19 @@ export const getMemoryById = asyncHandler(async (req: Request, res: Response) =>
     throw new Error("Memory not found");
   }
 
-  res.status(200).json({
-    data: memory
-  });
+  res.status(200).json({ data: memory });
 });
 
 // ----------------------------------------------------------------------
 
 /**
- * @desc Update memory
- * @route PUT /api/memory/:id
- * @access Private
+ * @desc Update memory — title, caption, relation, date, tags
+ * @route PUT /api/memories/:id
+ * @access Private (Caregiver / Admin)
  */
 export const updateMemory = asyncHandler(async (req: Request, res: Response) => {
+  const { title, caption, relation, date, tags } = req.body;
+
   const memory = await MemoryItem.findById(req.params.id);
 
   if (!memory) {
@@ -83,24 +114,35 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error("Memory not found");
   }
 
-  memory.type = req.body.type || memory.type;
-  memory.content_ref = req.body.content_ref || memory.content_ref;
-  memory.tags = req.body.tags || memory.tags;
+  if (!title && !caption && !relation && !date && !tags) {
+    res.status(400);
+    throw new Error("At least one field is required to update");
+  }
+
+  if (title !== undefined)    memory.title    = title;
+  if (caption !== undefined)  memory.caption  = caption;
+  if (relation !== undefined) memory.relation = relation;
+  if (date !== undefined)     memory.date     = new Date(date);
+  if (tags !== undefined) {
+    memory.tags = Array.isArray(tags)
+      ? tags
+      : tags.split(",").map((t: string) => t.trim());
+  }
 
   const updatedMemory = await memory.save();
 
   res.status(200).json({
     message: "Memory updated successfully",
-    data: updatedMemory
+    data: updatedMemory,
   });
 });
 
 // ----------------------------------------------------------------------
 
 /**
- * @desc Delete memory
- * @route DELETE /api/memory/:id
- * @access Private
+ * @desc Delete memory — also removes file from Cloudinary
+ * @route DELETE /api/memories/:id
+ * @access Private (Caregiver / Admin)
  */
 export const deleteMemory = asyncHandler(async (req: Request, res: Response) => {
   const memory = await MemoryItem.findById(req.params.id);
@@ -110,11 +152,16 @@ export const deleteMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error("Memory not found");
   }
 
+  if (memory.cloudinary_public_id) {
+    const resourceType = memory.type === "video" ? "video" : "image";
+    await cloudinary.uploader.destroy(memory.cloudinary_public_id, {
+      resource_type: resourceType,
+    });
+  }
+
   await memory.deleteOne();
 
-  res.status(200).json({
-    message: "Memory deleted successfully"
-  });
+  res.status(200).json({ message: "Memory deleted successfully" });
 });
 
 // ----------------------------------------------------------------------
@@ -133,16 +180,13 @@ export const searchMemoryByTags = asyncHandler(async (req: Request, res: Respons
   }
 
   const memories = await MemoryItem.find({
-  tags: {
-    $in: (tags as string)
-      .split(",")
-      .map(tag => tag.trim())
-  }
-});
-
+    tags: {
+      $in: (tags as string).split(",").map((tag) => tag.trim()),
+    },
+  });
 
   res.status(200).json({
     results: memories.length,
-    data: memories
+    data: memories,
   });
 });

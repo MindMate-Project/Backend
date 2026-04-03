@@ -7,12 +7,11 @@ const express_1 = __importDefault(require("express"));
 const memoryItem_controller_1 = require("../controllers/memoryItem.controller");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const authorize_middleware_1 = require("../middlewares/authorize.middleware");
+const uploadMemory_middleware_1 = require("../middlewares/uploadMemory.middleware");
 const router = express_1.default.Router();
-// Create memory (caregiver or admin)
-router.post("/", auth_middleware_1.protect, (0, authorize_middleware_1.authorize)("caregiver", "admin"), memoryItem_controller_1.createMemory);
-// Search memories
+router.post("/", auth_middleware_1.protect, (0, authorize_middleware_1.authorize)("caregiver", "admin"), uploadMemory_middleware_1.handleMemoryUpload, // <-- Cloudinary upload happens here
+memoryItem_controller_1.createMemory);
 router.get("/search", auth_middleware_1.protect, (0, authorize_middleware_1.authorize)("patient", "caregiver", "admin"), memoryItem_controller_1.searchMemoryByTags);
-// Get memories for a patient
 router.get("/patient/:patientId", auth_middleware_1.protect, (0, authorize_middleware_1.authorize)("patient", "caregiver", "admin"), memoryItem_controller_1.getPatientMemories);
 router
     .route("/:id")

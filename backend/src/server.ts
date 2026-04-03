@@ -1,21 +1,22 @@
 import dotenv from "dotenv";
 dotenv.config();
-import express  from "express";
+import express from "express";
 import connectDB from "./config/db";
-import authRoutes from "./routes/auth.routes"
-import memoryItemRoutes from "./routes/memoryItem.routes"
-import deviceRoutes from "./routes/device.routes"
-import caregiverRoutes from "./routes/caregiver.routes"
-import patientRoutes from "./routes/patient.routes"
-import reminderRoutes from "./routes/reminder.routes"
-import alertRoutes from "./routes/alert.routes"
-import faceRouter from "./routes/face.routes"
+import authRoutes from "./routes/auth.routes";
+import memoryItemRoutes from "./routes/memoryItem.routes";
+import deviceRoutes from "./routes/device.routes";
+import caregiverRoutes from "./routes/caregiver.routes";
+import patientRoutes from "./routes/patient.routes";
+import reminderRoutes from "./routes/reminder.routes";
+import alertRoutes from "./routes/alert.routes";
+import faceRouter from "./routes/face.routes";
+import userRoutes from "./routes/user.routes"; 
 import { setupSwagger } from "./config/swagger";
 import http from "http";
 import { IoTService } from "./services/IoT.service";
 import { setupLocationSocket } from "./services/socket.service";
 import { startReminderCron } from "./jops/reminderCron";
-import cors from 'cors';
+import cors from "cors";
 import { Request, Response, NextFunction } from "express";
 connectDB();
 startReminderCron();
@@ -30,23 +31,24 @@ export const io = setupLocationSocket(server);
 const iotService = new IoTService();
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);                     
 app.use("/api/memories", memoryItemRoutes);
 app.use("/api/caregiver", caregiverRoutes);
 app.use("/api/patient", patientRoutes);
-app.use("/api/reminders",reminderRoutes)
+app.use("/api/reminders", reminderRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/device", deviceRoutes);
 app.use("/api/face/patient", faceRouter);
 
 const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
-  res.send(`API is running on port ${PORT}`);
+    res.send(`API is running on port ${PORT}`);
 });
 
 app.use((req: Request, res: Response) => {
     res.status(404).json({
         success: false,
-        message: `Route not found: ${req.originalUrl}`
+        message: `Route not found: ${req.originalUrl}`,
     });
 });
 
@@ -54,11 +56,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
     res.status(err.statusCode).json({
-        message: err.message
+        message: err.message,
     });
-  
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

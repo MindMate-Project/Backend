@@ -38,22 +38,24 @@ const MemoryItemSchema = new mongoose_1.Schema({
     patient_id: {
         type: String,
         required: true,
-        index: true
+        index: true,
     },
     type: {
         type: String,
         enum: ["photo", "video", "text"],
-        required: true
+        required: true,
     },
     content_ref: {
         type: String,
-        required: true
+        required: true,
     },
     tags: {
         type: [String],
-        default: []
-    }
-}, {
-    timestamps: true
-});
+        default: [],
+    },
+    cloudinary_public_id: {
+        type: String,
+        default: null,
+    },
+}, { timestamps: true });
 exports.default = mongoose_1.default.model("MemoryItem", MemoryItemSchema);

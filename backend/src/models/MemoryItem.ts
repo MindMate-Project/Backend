@@ -3,7 +3,12 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IMemoryItem extends Document {
   patient_id: string;
   type: "photo" | "video" | "text";
-  content_ref: string;
+  title: string;
+  caption: string;
+  relation?: string;
+  date?: Date;
+  file_url?: string;
+  cloudinary_public_id?: string;
   tags: string[];
 }
 
@@ -12,28 +17,46 @@ const MemoryItemSchema = new Schema<IMemoryItem>(
     patient_id: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
     type: {
       type: String,
       enum: ["photo", "video", "text"],
-      required: true
+      required: true,
     },
-    content_ref: {
+    title: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
+    },
+    caption: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    relation: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    date: {
+      type: Date,
+      default: null,
+    },
+    file_url: {
+      type: String,
+      default: null,
+    },
+    cloudinary_public_id: {
+      type: String,
+      default: null,
     },
     tags: {
       type: [String],
-      default: []
-    }
+      default: [],
+    },
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-export default mongoose.model<IMemoryItem>(
-  "MemoryItem",
-  MemoryItemSchema
-);
+export default mongoose.model<IMemoryItem>("MemoryItem", MemoryItemSchema);
