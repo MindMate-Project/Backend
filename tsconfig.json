@@ -6,13 +6,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./backend/dist",
-    "rootDir": "./backend/src",
+    "outDir": "./dist",
+    "rootDir": "./src",
      "allowJs": true,
     "checkJs": true,
      "noEmit": false
      //"allowImportingTsExtensions":true
   },
-    "include": ["backend/src/**/*"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules"]
   }
