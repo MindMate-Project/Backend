@@ -17,7 +17,6 @@ import { IoTService } from "./services/IoT.service";
 import { setupLocationSocket } from "./services/socket.service";
 import { startReminderCron } from "./jops/reminderCron";
 import cors from "cors";
-import { Request, Response, NextFunction } from "express";
 import { notFound, errorHandler } from "./middlewares/error.middleware";
 connectDB();
 startReminderCron();
