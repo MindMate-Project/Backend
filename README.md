@@ -7,7 +7,7 @@
 
 ## 📋 Quick Links
 
-[Overview](#-project-overview) | [Key Insights](#-key-insights) | [Features](#-features) | [Tech Stack](#-tech-stack) | [Setup](#-setup) | [API](#-api-endpoints) | [Structure](#-structure) | [Models](#-models)
+[Overview](#-project-overview)  | [Features](#-features) | [Tech Stack](#-tech-stack) | [Setup](#-prerequisites--setup-locally) | [API](#-api-endpoints) | [Structure](#-project-structure) | [Models](#-database-models) | [Services](#-services) | [License](#-license)
 
 ---
 
@@ -45,15 +45,15 @@ MindMate Backend is a REST API for Alzheimer's care that connects patients, care
 
 ## 🚀 Tech Stack
 
-**Backend:** Express.js (v5.1.0) | Node.js | TypeScript (v5.9.3)
-**Database:** MongoDB | Mongoose (v8.19.2)
-**Real-Time:** Socket.io (v4.8.3) | MQTT (v5.15.0)
-**Auth:** JWT | bcryptjs | validator.js
-**File Storage:** Cloudinary | Multer
-**Notifications:** Firebase Admin (v13.7.0) | Nodemailer | Brevo
-**Scheduling:** node-cron
-**Docs:** Swagger | Swagger UI
-**Dev Tools:** Nodemon | ts-node | Axios
+- **Backend:** Express.js (v5.1.0) | Node.js | TypeScript (v5.9.3)
+- **Database:** MongoDB | Mongoose (v8.19.2)
+- **Real-Time:** Socket.io (v4.8.3) | MQTT (v5.15.0)
+- **Auth:** JWT | bcryptjs | validator.js
+- **File Storage:** Cloudinary | Multer
+- **Notifications:** Firebase Admin (v13.7.0) | Nodemailer | Brevo
+- **Scheduling:** node-cron
+- **Docs:** Swagger | Swagger UI
+- **Dev Tools:** Nodemon | ts-node | Axios
 
 ---
 
