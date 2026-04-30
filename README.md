@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-ISC-blue)
 ![Version](https://img.shields.io/badge/version-1.0.0-green)
 
-**REST API for Alzheimer's patient care** with real-time location tracking, reminders, memory preservation, alerts, and IoT integration.
+**REST API for Alzheimer's patient care** with AI-powered face recognition, real-time location tracking, reminders, memory preservation, alerts, and IoT integration.
 
 ## 📋 Quick Links
 
