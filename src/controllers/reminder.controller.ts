@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import asyncHandler from "express-async-handler";
 import {
   Reminder,
   AppointmentReminder,
@@ -10,19 +11,21 @@ import {
     Handles single and recurring (daily/weekly) reminders.
     Generates multiple database entries based on frequency.
 ============================================================= */
-export const createReminder = async (req: Request, res: Response) => {
+export const createReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { type, scheduledTime, frequency, timesPerDay, endDate, appointmentDate,...rest } = req.body;
 
     // Basic validation: ensure type and initial time are provided
     if (!type || !scheduledTime) {
-      return res.status(400).json({ message: "Missing required fields" });
+      res.status(400).json({ message: "Missing required fields" });
+      return;
     }
 
     const start = new Date(scheduledTime);
     // Prevent creating reminders for dates that have already passed
     if (start < new Date()) {
-      return res.status(400).json({ message: "Scheduled time cannot be in the past" });
+      res.status(400).json({ message: "Scheduled time cannot be in the past" });
+      return;
     }
 
     const remindersToCreate = [];
@@ -137,7 +140,8 @@ export const createReminder = async (req: Request, res: Response) => {
     } else if (type === "medication") {
       result = await MedicationReminder.insertMany(remindersToCreate);
     } else {
-      return res.status(400).json({ message: "Invalid reminder type" });
+      res.status(400).json({ message: "Invalid reminder type" });
+      return;
     }
 
     res.status(201).json({
@@ -147,13 +151,13 @@ export const createReminder = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Error creating reminder", error });
   }
-};
+});
 
 /* =============================================================
     ✅ Get All Reminders For Patient
     Retrieves all instances and populates related user data.
 ============================================================= */
-export const getPatientReminders = async (req: Request, res: Response) => {
+export const getPatientReminders = asyncHandler(async (req: Request, res: Response) => {
   try {
     const reminders = await Reminder.find({
       patient: req.params.patientId,
@@ -165,37 +169,39 @@ export const getPatientReminders = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Error fetching reminders", error });
   }
-};
+});
 
 /* =============================================================
     ✅ Get Single Reminder
 ============================================================= */
-export const getReminderById = async (req: Request, res: Response) => {
+export const getReminderById = asyncHandler(async (req: Request, res: Response) => {
   try {
     const reminder = await Reminder.findById(req.params.id).populate(
       "patient caregiver"
     );
 
     if (!reminder) {
-      return res.status(404).json({ message: "Reminder not found" });
+      res.status(404).json({ message: "Reminder not found" });
+      return;
     }
 
     res.json(reminder);
   } catch (error) {
     res.status(500).json({ message: "Error fetching reminder", error });
   }
-};
+});
 
 /* =============================================================
     ✅ Update Reminder
     Updates specific fields. Protects status/type from manual edit.
 ============================================================= */
-export const updateReminder = async (req: Request, res: Response) => {
+export const updateReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
     const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
-      return res.status(404).json({ message: "Reminder not found" });
+      res.status(404).json({ message: "Reminder not found" });
+      return;
     }
 
     // Protect system-controlled fields from being overwritten via body
@@ -210,22 +216,23 @@ export const updateReminder = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Error updating reminder", error });
   }
-};
+});
 
 
 /* =============================================================
     ✅ Delete Reminder
 ============================================================= */
-export const deleteReminder = async (req: Request, res: Response) => {
+export const deleteReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
     const reminder = await Reminder.findByIdAndDelete(req.params.id);
 
     if (!reminder) {
-      return res.status(404).json({ message: "Reminder not found" });
+      res.status(404).json({ message: "Reminder not found" });
+      return;
     }
 
     res.json({ message: "Reminder deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting reminder", error });
   }
-};
+});
