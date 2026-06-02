@@ -17,6 +17,7 @@ import { setupLocationSocket } from "./services/socket.service";
 import { startReminderCron } from "./jops/reminderCron";
 import cors from 'cors';
 import { Request, Response, NextFunction } from "express";
+import { notFound, errorHandler } from "./middlewares/error.middleware";
 connectDB();
 startReminderCron();
 const app = express();
@@ -58,6 +59,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     });
   
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
