@@ -7,7 +7,7 @@ export async function axiosWithRetry(
 ): Promise<any> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      return await axios(config);
+      return await axios({ timeout: 30000, ...config });
     } catch (err: any) {
       const status = err?.response?.status;
       const isLast = attempt === retries;
