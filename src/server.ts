@@ -21,6 +21,7 @@ import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
+import { notFound, errorHandler } from "./middlewares/error.middleware";
 connectDB();
 startReminderCron();
 const app = express();
@@ -53,23 +54,14 @@ app.use("/api/face/patient", faceRouter);
 
 const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
-    res.send(`API is running on port ${PORT}`);
-});
-
-app.use((req: Request, res: Response) => {
-    res.status(404).json({
-        success: false,
-        message: `Route not found: ${req.originalUrl}`,
+    res.json({
+        success: true,
+        message: `API is running on port ${PORT}`,
     });
 });
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    err.statusCode = err.statusCode || 500;
-    err.status = err.status || "error";
-    res.status(err.statusCode).json({
-        message: err.message,
-    });
-});
+app.use(notFound);
+app.use(errorHandler);
 
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
