@@ -1,0 +1,232 @@
+import { Request, Response } from "express";
+import asyncHandler from "express-async-handler";
+import {
+  Reminder,
+  AppointmentReminder,
+  MedicationReminder,
+} from "../models/Reminder";
+
+/* =============================================================
+    ✅ Create Reminder
+    Handles single and recurring (daily/weekly) reminders.
+    Generates multiple database entries based on frequency.
+============================================================= */
+export const createReminder = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { type, scheduledTime, frequency, timesPerDay, endDate, appointmentDate,...rest } = req.body;
+
+    // Basic validation: ensure type and initial time are provided
+    if (!type || !scheduledTime) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
+    }
+
+    const start = new Date(scheduledTime);
+    // Prevent creating reminders for dates that have already passed
+    if (start < new Date()) {
+      res.status(400).json({ message: "Scheduled time cannot be in the past" });
+      return;
+    }
+
+    const remindersToCreate = [];
+  if (type === "appointment") {
+      // 1-reminder before actual date
+      const actualAppointmentTime = start;
+      remindersToCreate.push({
+
+        ...rest,
+
+        type,
+
+        scheduledTime: actualAppointmentTime,
+
+        appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+        isSent: false,
+
+      });
+    // 2-reminder before one day
+      const dayBefore = new Date(actualAppointmentTime);
+
+      dayBefore.setHours(dayBefore.getHours() - 24);
+
+      if (dayBefore > new Date()) {
+
+        remindersToCreate.push({
+
+          ...rest,
+
+          type,
+
+          scheduledTime: dayBefore,
+
+          appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+          notes: `(Reminder: 24h before) ${rest.notes || ""}`,
+
+          isSent: false,
+
+        });
+
+      }
+      // 3-before one hour
+      const hourBefore = new Date(actualAppointmentTime);
+
+      hourBefore.setHours(hourBefore.getHours() - 1);
+
+      if (hourBefore > new Date()) {
+
+        remindersToCreate.push({
+
+          ...rest,
+
+          type,
+
+          scheduledTime: hourBefore,
+
+          appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
+
+          notes: `(Reminder: 1h before) ${rest.notes || ""}`,
+
+          isSent: false,
+
+        });
+
+      }
+    } else {
+    const iterations = timesPerDay && timesPerDay > 0 ? timesPerDay : 1;
+    const intervalHours = 24 / iterations; 
+    const stepDays = frequency === "weekly" ? 7 : 1;
+
+    const lastDate =
+      frequency === "once" || !endDate ? new Date(start) : new Date(endDate);
+
+    let currentDay = new Date(start);
+
+    while (currentDay <= lastDate) {
+      for (let i = 0; i < iterations; i++) {
+        const instanceTime = new Date(currentDay);
+
+        instanceTime.setHours(
+          instanceTime.getHours() + Math.round(i * intervalHours)
+        );
+
+        if (instanceTime <= lastDate || frequency === "once") {
+          remindersToCreate.push({
+            ...rest,
+            type,
+            scheduledTime: instanceTime,
+            frequency,
+            timesPerDay,
+            endDate,
+            isSent: false,
+          });
+        }
+      }
+      currentDay.setDate(currentDay.getDate() + stepDays);
+      if (remindersToCreate.length > 500) break;
+    }}
+
+    let result;
+    // Use insertMany for high performance when saving multiple documents at once
+    if (type === "appointment") {
+      result = await AppointmentReminder.insertMany(remindersToCreate);
+    } else if (type === "medication") {
+      result = await MedicationReminder.insertMany(remindersToCreate);
+    } else {
+      res.status(400).json({ message: "Invalid reminder type" });
+      return;
+    }
+
+    res.status(201).json({
+      message: `${remindersToCreate.length} reminders created successfully`,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating reminder", error });
+  }
+});
+
+/* =============================================================
+    ✅ Get All Reminders For Patient
+    Retrieves all instances and populates related user data.
+============================================================= */
+export const getPatientReminders = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reminders = await Reminder.find({
+      patient: req.params.patientId,
+    })
+      .sort({ scheduledTime: 1 }) // Order by time (Ascending)
+      .populate("patient caregiver");
+
+    res.json(reminders);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching reminders", error });
+  }
+});
+
+/* =============================================================
+    ✅ Get Single Reminder
+============================================================= */
+export const getReminderById = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findById(req.params.id).populate(
+      "patient caregiver"
+    );
+
+    if (!reminder) {
+      res.status(404).json({ message: "Reminder not found" });
+      return;
+    }
+
+    res.json(reminder);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching reminder", error });
+  }
+});
+
+/* =============================================================
+    ✅ Update Reminder
+    Updates specific fields. Protects status/type from manual edit.
+============================================================= */
+export const updateReminder = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findById(req.params.id);
+
+    if (!reminder) {
+      res.status(404).json({ message: "Reminder not found" });
+      return;
+    }
+
+    // Protect system-controlled fields from being overwritten via body
+    delete req.body.status;
+    delete req.body.isSent;
+    delete req.body.type;
+
+    Object.assign(reminder, req.body);
+    await reminder.save();
+
+    res.json(reminder);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating reminder", error });
+  }
+});
+
+
+/* =============================================================
+    ✅ Delete Reminder
+============================================================= */
+export const deleteReminder = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findByIdAndDelete(req.params.id);
+
+    if (!reminder) {
+      res.status(404).json({ message: "Reminder not found" });
+      return;
+    }
+
+    res.json({ message: "Reminder deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting reminder", error });
+  }
+});
