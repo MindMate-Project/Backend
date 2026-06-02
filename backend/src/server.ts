@@ -18,9 +18,13 @@ import { setupLocationSocket } from "./services/socket.service";
 import { startReminderCron } from "./jops/reminderCron";
 import cors from "cors";
 import { Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
 connectDB();
 startReminderCron();
 const app = express();
+app.use(helmet({ contentSecurityPolicy: false }));
 setupSwagger(app);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -30,7 +34,14 @@ const server = http.createServer(app);
 export const io = setupLocationSocket(server);
 const iotService = new IoTService();
 
-app.use("/api/auth", authRoutes);
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many attempts, please try again later." },
+});
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/users", userRoutes);                     
 app.use("/api/memories", memoryItemRoutes);
 app.use("/api/caregiver", caregiverRoutes);
