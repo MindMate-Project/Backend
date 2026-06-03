@@ -5,6 +5,7 @@ import {
   AppointmentReminder,
   MedicationReminder,
 } from "../models/Reminder";
+import { canAccessPatient } from "../utils/ownership";
 
 /* =============================================================
     ✅ Create Reminder
@@ -26,6 +27,12 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
     if (start < new Date()) {
       res.status(400).json({ message: "Scheduled time cannot be in the past" });
       return;
+    }
+
+    if (!(await canAccessPatient(req.user, req.body.patient))) {
+      return res.status(403).json({
+        message: "You are not allowed to create reminders for this patient",
+      });
     }
 
     const remindersToCreate = [];
@@ -123,7 +130,11 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
           });
         }
       }
-      currentDay.setDate(currentDay.getDate() + stepDays);
+      
+      // Move the cursor to the next calendar day
+      currentDay.setDate(currentDay.getDate() + 1);
+      
+      // Safety break to prevent infinite loops or database flooding
       if (remindersToCreate.length > 500) break;
     }}
 
@@ -143,7 +154,8 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
       data: result,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error creating reminder", error });
+    console.error("Error creating reminder:", error);
+    res.status(500).json({ message: "Error creating reminder" });
   }
 });
 
@@ -153,6 +165,10 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
 ============================================================= */
 export const getPatientReminders = asyncHandler(async (req: Request, res: Response) => {
   try {
+    if (!(await canAccessPatient(req.user, req.params.patientId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     const reminders = await Reminder.find({
       patient: req.params.patientId,
     })
@@ -161,7 +177,8 @@ export const getPatientReminders = asyncHandler(async (req: Request, res: Respon
 
     res.json(reminders);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching reminders", error });
+    console.error("Error fetching reminders:", error);
+    res.status(500).json({ message: "Error fetching reminders" });
   }
 });
 
@@ -179,9 +196,14 @@ export const getReminderById = asyncHandler(async (req: Request, res: Response) 
       return;
     }
 
+    const ownerId = (reminder.patient as any)?._id ?? reminder.patient;
+    if (!(await canAccessPatient(req.user, ownerId))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     res.json(reminder);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching reminder", error });
+    res.status(500).json({ message: "Error fetching reminder" });
   }
 });
 
@@ -198,17 +220,21 @@ export const updateReminder = asyncHandler(async (req: Request, res: Response) =
       return;
     }
 
+    if (!(await canAccessPatient(req.user, reminder.patient as any))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
     // Protect system-controlled fields from being overwritten via body
-    delete req.body.status;
     delete req.body.isSent;
     delete req.body.type;
+    delete req.body.patient;
 
     Object.assign(reminder, req.body);
     await reminder.save();
 
     res.json(reminder);
   } catch (error) {
-    res.status(500).json({ message: "Error updating reminder", error });
+    res.status(500).json({ message: "Error updating reminder" });
   }
 });
 
@@ -218,15 +244,21 @@ export const updateReminder = asyncHandler(async (req: Request, res: Response) =
 ============================================================= */
 export const deleteReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const reminder = await Reminder.findByIdAndDelete(req.params.id);
+    const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
       res.status(404).json({ message: "Reminder not found" });
       return;
     }
 
+    if (!(await canAccessPatient(req.user, reminder.patient as any))) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    await reminder.deleteOne();
+
     res.json({ message: "Reminder deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting reminder", error });
+    res.status(500).json({ message: "Error deleting reminder" });
   }
 });

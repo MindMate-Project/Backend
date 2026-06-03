@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import MemoryItem from "../models/MemoryItem";
 import cloudinary from "../config/cloudinary";
+import { canAccessPatient, patientIdsFor } from "../utils/ownership";
 
 // ----------------------------------------------------------------------
 
@@ -39,6 +40,11 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error(`A file is required for ${type} memories`);
   }
 
+  if (!(await canAccessPatient(req.user, patient_id))) {
+    res.status(403);
+    throw new Error("You are not allowed to add memories for this patient");
+  }
+
   const memory = await MemoryItem.create({
     patient_id,
     type,
@@ -71,6 +77,11 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
 export const getPatientMemories = asyncHandler(async (req: Request, res: Response) => {
   const { patientId } = req.params;
 
+  if (!(await canAccessPatient(req.user, patientId))) {
+    res.status(403);
+    throw new Error("Access denied");
+  }
+
   const memories = await MemoryItem.find({ patient_id: patientId });
 
   res.status(200).json({
@@ -94,6 +105,11 @@ export const getMemoryById = asyncHandler(async (req: Request, res: Response) =>
     throw new Error("Memory not found");
   }
 
+  if (!(await canAccessPatient(req.user, memory.patient_id))) {
+    res.status(403);
+    throw new Error("Access denied");
+  }
+
   res.status(200).json({ data: memory });
 });
 
@@ -112,6 +128,11 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
   if (!memory) {
     res.status(404);
     throw new Error("Memory not found");
+  }
+
+  if (!(await canAccessPatient(req.user, memory.patient_id))) {
+    res.status(403);
+    throw new Error("Access denied");
   }
 
   if (!title && !caption && !relation && !date && !tags) {
@@ -152,6 +173,11 @@ export const deleteMemory = asyncHandler(async (req: Request, res: Response) => 
     throw new Error("Memory not found");
   }
 
+  if (!(await canAccessPatient(req.user, memory.patient_id))) {
+    res.status(403);
+    throw new Error("Access denied");
+  }
+
   if (memory.cloudinary_public_id) {
     const resourceType = memory.type === "video" ? "video" : "image";
     await cloudinary.uploader.destroy(memory.cloudinary_public_id, {
@@ -179,11 +205,15 @@ export const searchMemoryByTags = asyncHandler(async (req: Request, res: Respons
     throw new Error("Tags query is required");
   }
 
-  const memories = await MemoryItem.find({
-    tags: {
-      $in: (tags as string).split(",").map((tag) => tag.trim()),
-    },
-  });
+  const tagList = (tags as string).split(",").map((tag) => tag.trim());
+  const query: Record<string, unknown> = { tags: { $in: tagList } };
+
+  const user = req.user!;
+  if (user.role !== "admin") {
+    query.patient_id = { $in: await patientIdsFor(user) };
+  }
+
+  const memories = await MemoryItem.find(query);
 
   res.status(200).json({
     results: memories.length,

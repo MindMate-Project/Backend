@@ -38,6 +38,7 @@ interface verifyResetPasswordBody{
 }
 interface ResetPasswordBody {
     email: string,
+    code: string,
     password: string,
     passwordConfirmation:string
 }
@@ -240,11 +241,14 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
 export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPasswordBody>, res: Response) => {
     const { email } = req.body;
 
+    const genericMessage =
+        "If an account exists for that email, a password reset code has been sent.";
+
     const user = await User.findOne({ email });
 
     if (!user) {
-        res.status(404);
-        throw new Error("There is no user with that email address");
+        res.status(200).json({ message: genericMessage });
+        return;
     }
 
     // 1. Generate a random 6-digit reset code (for user)
@@ -272,7 +276,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPas
         await sendEmail(user.email, "Password Reset Code", message);
 
         res.status(200).json({
-            message: "Password reset code sent to your email.",
+            message: genericMessage,
         });
 
     } catch (error) {
@@ -318,20 +322,31 @@ export const verifyResetPassword = asyncHandler(async (req: Request<{},{},verify
 
 })
 export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
-    const { email, password ,passwordConfirmation} = req.body;
+    const { email, code, password, passwordConfirmation } = req.body;
      if (!password || password !== passwordConfirmation) {
       res.status(400);
       throw new Error("Passwords do not match");
     }
-    // 1. Find the user by email, matching token, and non-expired time
+
+    if (!code) {
+      res.status(400);
+      throw new Error("Reset code is required");
+    }
+
+    const hashedCode = crypto
+        .createHash("sha256")
+        .update(code)
+        .digest("hex");
+
     const user = await User.findOne({
         email,
-        passwordResetExpires: { $gt: Date.now() }, 
+        passwordResetToken: hashedCode,
+        passwordResetExpires: { $gt: Date.now() },
     });
 
     if (!user) {
         res.status(400);
-        throw new Error("Reset session expired. Try again.");
+        throw new Error("Invalid or expired reset code.");
     }
 
     // Set new password (pre-save hook will hash it)
