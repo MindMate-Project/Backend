@@ -73,7 +73,10 @@ export const registerPatientFace = asyncHandler(
         method: "POST",
         url: `${PYTHON_AI_URL}/face/register-batch`,
         data: formData,
-        headers: formData.getHeaders()
+        headers: {
+          ...formData.getHeaders(),
+          "x-internal-key": process.env.PYTHON_AI_KEY || "",
+        }
       });
     } catch (err: any) {
       if (err?.response?.status === 429) {
@@ -180,7 +183,10 @@ export const addPhotosToKnownPerson = asyncHandler(
         method: "POST",
         url: `${PYTHON_AI_URL}/face/add-photos`,
         data: formData,
-        headers: formData.getHeaders()
+        headers: {
+          ...formData.getHeaders(),
+          "x-internal-key": process.env.PYTHON_AI_KEY || "",
+        }
       });
     } catch (err: any) {
       if (err?.response?.status === 429) {
@@ -263,7 +269,10 @@ export const identifyPatientByFace = asyncHandler(
         method: "POST",
         url: `${PYTHON_AI_URL}/face/identify`,
         data: formData,
-        headers: formData.getHeaders()
+        headers: {
+          ...formData.getHeaders(),
+          "x-internal-key": process.env.PYTHON_AI_KEY || "",
+        }
       });
     } catch (err: any) {
       if (err?.response?.status === 429) {

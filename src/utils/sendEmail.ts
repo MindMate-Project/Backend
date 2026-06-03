@@ -25,8 +25,8 @@ export const sendEmail = async (
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.htmlContent = html;
   sendSmtpEmail.sender = {
-    name: "Alzahimar",
-    email: "mohammedhossam343@gmail.com", 
+    name: process.env.EMAIL_FROM_NAME || "Alzahimar",
+    email: process.env.EMAIL_FROM || "mohammedhossam343@gmail.com",
   };
 
   try {
