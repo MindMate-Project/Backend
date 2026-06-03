@@ -100,25 +100,24 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
         });
 
       }
-    } else{
-    const iterations = timesPerDay || 1; // Default to 1 dose/event per day
-    const intervalHours = 24 / iterations; // Calculate spacing (e.g., 3 times = every 8 hours)
-    
-    // Determine the boundary date for the recurrence loop
-    const lastDate = frequency === "daily" && endDate ? new Date(endDate) : new Date(start);
+    } else {
+    const iterations = timesPerDay && timesPerDay > 0 ? timesPerDay : 1;
+    const intervalHours = 24 / iterations; 
+    const stepDays = frequency === "weekly" ? 7 : 1;
+
+    const lastDate =
+      frequency === "once" || !endDate ? new Date(start) : new Date(endDate);
 
     let currentDay = new Date(start);
 
-    // Loop through each day from start date until the end date
     while (currentDay <= lastDate) {
-      // For each day, create the specified number of doses/instances
       for (let i = 0; i < iterations; i++) {
         const instanceTime = new Date(currentDay);
-        
-        // Offset the hour based on the iteration (e.g., 08:00, 16:00, 00:00)
-        instanceTime.setHours(instanceTime.getHours() + (i * intervalHours));
 
-        // Only add to array if the specific instance time hasn't exceeded the endDate
+        instanceTime.setHours(
+          instanceTime.getHours() + Math.round(i * intervalHours)
+        );
+
         if (instanceTime <= lastDate || frequency === "once") {
           remindersToCreate.push({
             ...rest,
@@ -127,7 +126,6 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
             frequency,
             timesPerDay,
             endDate,
-            status: "pending",
             isSent: false,
           });
         }

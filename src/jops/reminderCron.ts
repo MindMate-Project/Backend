@@ -66,12 +66,11 @@ cron.schedule("* * * * *", async () => {
 
     // 6. Execute all reminder processes concurrently for better performance
     await Promise.allSettled(reminderPromises);
+    console.log(`Reminder cron: processed ${reminders.length} due reminder(s)`);
 
   } catch (error) {
     // Log critical errors (e.g., Database connection issues)
     console.error("Critical Reminder Cron Error:", error);
   }
-
-console.log("Cron Job Running every minute...");
   });
 };

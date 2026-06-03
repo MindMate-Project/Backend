@@ -49,6 +49,7 @@ const ReminderSchema = new Schema<IBaseReminder>(
   },
   baseOptions
 );
+ReminderSchema.index({ isSent: 1, scheduledTime: 1 });
 
 export const Reminder = mongoose.model<IBaseReminder>("Reminder", ReminderSchema);
 
