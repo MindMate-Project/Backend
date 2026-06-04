@@ -30,9 +30,10 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
     }
 
     if (!(await canAccessPatient(req.user, req.body.patient))) {
-      return res.status(403).json({
+      res.status(403).json({
         message: "You are not allowed to create reminders for this patient",
       });
+      return;
     }
 
     const remindersToCreate = [];
@@ -132,7 +133,7 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
       }
       
       // Move the cursor to the next calendar day
-      currentDay.setDate(currentDay.getDate() + 1);
+      currentDay.setDate(currentDay.getDate() + stepDays);
       
       // Safety break to prevent infinite loops or database flooding
       if (remindersToCreate.length > 500) break;
@@ -166,7 +167,8 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
 export const getPatientReminders = asyncHandler(async (req: Request, res: Response) => {
   try {
     if (!(await canAccessPatient(req.user, req.params.patientId))) {
-      return res.status(403).json({ message: "Access denied" });
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
     const reminders = await Reminder.find({
@@ -198,7 +200,8 @@ export const getReminderById = asyncHandler(async (req: Request, res: Response) 
 
     const ownerId = (reminder.patient as any)?._id ?? reminder.patient;
     if (!(await canAccessPatient(req.user, ownerId))) {
-      return res.status(403).json({ message: "Access denied" });
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
     res.json(reminder);
@@ -221,7 +224,8 @@ export const updateReminder = asyncHandler(async (req: Request, res: Response) =
     }
 
     if (!(await canAccessPatient(req.user, reminder.patient as any))) {
-      return res.status(403).json({ message: "Access denied" });
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
     // Protect system-controlled fields from being overwritten via body
@@ -252,7 +256,8 @@ export const deleteReminder = asyncHandler(async (req: Request, res: Response) =
     }
 
     if (!(await canAccessPatient(req.user, reminder.patient as any))) {
-      return res.status(403).json({ message: "Access denied" });
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
     await reminder.deleteOne();
