@@ -5,6 +5,7 @@ import {
   getReminderById,
   updateReminder,
   deleteReminder,
+  deleteReminderSeries,
 } from "../controllers/reminder.controller";
 
 import { protect } from "../middlewares/auth.middleware";
@@ -262,6 +263,49 @@ router.get(
  *       404:
  *         description: Reminder not found
  */
+/* ===============================
+   ✅ Delete a whole reminder series
+   NOTE: must be declared before "/:id" so "series" is not parsed as an id.
+================================ */
+/**
+ * @swagger
+ * /api/reminders/series:
+ *   delete:
+ *     summary: Delete every reminder sharing a groupId (a whole schedule)
+ *     tags: [Reminders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: groupId shared by all rows of the schedule
+ *     responses:
+ *       200:
+ *         description: Series deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 deletedCount:
+ *                   type: integer
+ *       400:
+ *         description: groupId is required
+ *       404:
+ *         description: Reminder series not found
+ */
+router.delete(
+  "/series",
+  protect,
+  authorize("caregiver", "admin"),
+  deleteReminderSeries
+);
+
 router
   .route("/:id")
   .get(protect, authorize("caregiver", "patient", "admin"), getReminderById)

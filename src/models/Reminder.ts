@@ -11,8 +11,9 @@ export interface IBaseReminder extends Document {
   caregiver: Types.ObjectId | IMongooseBaseUser;
   scheduledTime: Date;
   isSent: boolean;
-  location?: string;    
-  medicineName?: string; 
+  groupId?: string;
+  location?: string;
+  medicineName?: string;
   dosage?: string;
 }
 
@@ -45,6 +46,13 @@ const ReminderSchema = new Schema<IBaseReminder>(
     isSent: {
       type: Boolean,
       default: false,
+    },
+    // Links all rows created from one request (a medication's many doses, or an
+    // appointment plus its lead-time rows) so the schedule can be deleted as a
+    // unit. Optional: legacy rows created before this field have none.
+    groupId: {
+      type: String,
+      index: true,
     },
   },
   baseOptions
