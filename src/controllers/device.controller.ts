@@ -37,7 +37,11 @@ export const deviceLocation = asyncHandler(async (req: Request, res: Response) =
 
     res.status(200).json({
         message: "device found successfuly",
-        data: patient
+        data: {
+            patientId: patient._id,
+            name: patient.name,
+            device: patient.device,
+        }
     });
 });
 

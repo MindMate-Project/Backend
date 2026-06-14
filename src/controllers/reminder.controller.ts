@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
+import { Types } from "mongoose";
 import {
   Reminder,
   AppointmentReminder,
@@ -14,7 +15,29 @@ import { canAccessPatient } from "../utils/ownership";
 ============================================================= */
 export const createReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { type, scheduledTime, frequency, timesPerDay, endDate, appointmentDate,...rest } = req.body;
+    // Whitelist the fields we persist instead of spreading req.body, so clients
+    // cannot inject schema fields like _id, isSent, createdAt or groupId.
+    const {
+      type,
+      scheduledTime,
+      frequency,
+      timesPerDay,
+      endDate,
+      appointmentDate,
+      patient,
+      caregiver,
+      // appointment fields
+      doctorName,
+      specialty,
+      location,
+      appointmentType,
+      notes,
+      // medication fields
+      medicineName,
+      dosage,
+      form,
+      startDate,
+    } = req.body;
 
     // Basic validation: ensure type and initial time are provided
     if (!type || !scheduledTime) {
@@ -36,22 +59,41 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
       return;
     }
 
+    // One id shared by every row of this create, so the whole schedule (all
+    // medication doses, or an appointment plus its lead-time rows) can be
+    // deleted as a unit later.
+    const groupId = new Types.ObjectId().toString();
+
+    const apptBase = {
+      patient,
+      caregiver,
+      doctorName,
+      specialty,
+      location,
+      appointmentType,
+      notes,
+      groupId,
+    };
+    const medBase = {
+      patient,
+      caregiver,
+      medicineName,
+      dosage,
+      form,
+      startDate,
+      groupId,
+    };
+
     const remindersToCreate = [];
   if (type === "appointment") {
       // 1-reminder before actual date
       const actualAppointmentTime = start;
       remindersToCreate.push({
-
-        ...rest,
-
+        ...apptBase,
         type,
-
         scheduledTime: actualAppointmentTime,
-
         appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
-
         isSent: false,
-
       });
     // 2-reminder before one day
       const dayBefore = new Date(actualAppointmentTime);
@@ -61,19 +103,12 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
       if (dayBefore > new Date()) {
 
         remindersToCreate.push({
-
-          ...rest,
-
+          ...apptBase,
           type,
-
           scheduledTime: dayBefore,
-
           appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
-
-          notes: `(Reminder: 24h before) ${rest.notes || ""}`,
-
+          notes: `(Reminder: 24h before) ${notes || ""}`,
           isSent: false,
-
         });
 
       }
@@ -85,25 +120,18 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
       if (hourBefore > new Date()) {
 
         remindersToCreate.push({
-
-          ...rest,
-
+          ...apptBase,
           type,
-
           scheduledTime: hourBefore,
-
           appointmentDate: appointmentDate ? new Date(appointmentDate) : actualAppointmentTime,
-
-          notes: `(Reminder: 1h before) ${rest.notes || ""}`,
-
+          notes: `(Reminder: 1h before) ${notes || ""}`,
           isSent: false,
-
         });
 
       }
     } else {
     const iterations = timesPerDay && timesPerDay > 0 ? timesPerDay : 1;
-    const intervalHours = 24 / iterations; 
+    const intervalHours = 24 / iterations;
     const stepDays = frequency === "weekly" ? 7 : 1;
 
     const lastDate =
@@ -121,7 +149,7 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
 
         if (instanceTime <= lastDate || frequency === "once") {
           remindersToCreate.push({
-            ...rest,
+            ...medBase,
             type,
             scheduledTime: instanceTime,
             frequency,
@@ -131,10 +159,10 @@ export const createReminder = asyncHandler(async (req: Request, res: Response) =
           });
         }
       }
-      
+
       // Move the cursor to the next calendar day
       currentDay.setDate(currentDay.getDate() + stepDays);
-      
+
       // Safety break to prevent infinite loops or database flooding
       if (remindersToCreate.length > 500) break;
     }}
@@ -171,12 +199,28 @@ export const getPatientReminders = asyncHandler(async (req: Request, res: Respon
       return;
     }
 
-    const reminders = await Reminder.find({
-      patient: req.params.patientId,
-    })
+    // Optional filtering/paging. When no query params are sent the response is
+    // unchanged (a plain array of every reminder), so existing clients keep
+    // working; web/future clients can scope by date window or page.
+    const { from, to, limit, skip } = req.query;
+    const filter: Record<string, any> = { patient: req.params.patientId };
+    if (from || to) {
+      filter.scheduledTime = {
+        ...(from ? { $gte: new Date(String(from)) } : {}),
+        ...(to ? { $lte: new Date(String(to)) } : {}),
+      };
+    }
+
+    let query = Reminder.find(filter)
       .sort({ scheduledTime: 1 }) // Order by time (Ascending)
       .populate("patient caregiver");
 
+    const skipN = Number(skip);
+    const limitN = Number(limit);
+    if (Number.isFinite(skipN) && skipN > 0) query = query.skip(skipN);
+    if (Number.isFinite(limitN) && limitN > 0) query = query.limit(limitN);
+
+    const reminders = await query;
     res.json(reminders);
   } catch (error) {
     console.error("Error fetching reminders:", error);
@@ -265,5 +309,41 @@ export const deleteReminder = asyncHandler(async (req: Request, res: Response) =
     res.json({ message: "Reminder deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting reminder" });
+  }
+});
+
+/* =============================================================
+    ✅ Delete Reminder Series
+    Removes every reminder sharing a groupId (a whole medication
+    schedule, or an appointment plus its lead-time rows).
+============================================================= */
+export const deleteReminderSeries = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { groupId } = req.query;
+    if (!groupId) {
+      res.status(400).json({ message: "groupId is required" });
+      return;
+    }
+
+    // Authorize against any one row of the series.
+    const sample = await Reminder.findOne({ groupId: String(groupId) });
+    if (!sample) {
+      res.status(404).json({ message: "Reminder series not found" });
+      return;
+    }
+
+    if (!(await canAccessPatient(req.user, sample.patient as any))) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    const result = await Reminder.deleteMany({ groupId: String(groupId) });
+
+    res.json({
+      message: "Reminder series deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting reminder series" });
   }
 });

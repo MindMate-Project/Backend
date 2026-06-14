@@ -44,14 +44,32 @@ export class IoTService {
                     return;
                 }
 
+                // Validate the payload before persisting — never store garbage or
+                // spoofed values from an unauthenticated MQTT publisher.
+                const lat = Number(data.latitude);
+                const lng = Number(data.longitude);
+                if (
+                    !Number.isFinite(lat) || lat < -90 || lat > 90 ||
+                    !Number.isFinite(lng) || lng < -180 || lng > 180
+                ) {
+                    console.error(`Invalid coordinates for ${topicIdentifier}:`, data);
+                    return;
+                }
+                const batteryNum = Number(data.battery);
+                const battery =
+                    Number.isFinite(batteryNum) && batteryNum >= 0 && batteryNum <= 100
+                        ? batteryNum
+                        : undefined;
+                const timestamp = new Date();
+
                 await Patient.findByIdAndUpdate(
                     topicIdentifier,
                     {
                         $set: {
-                            "device.latitude": data.latitude,
-                            "device.longitude": data.longitude,
-                            "device.timestamp": new Date(),
-                            "device.battery": data.battery,
+                            "device.latitude": lat,
+                            "device.longitude": lng,
+                            "device.timestamp": timestamp,
+                            ...(battery !== undefined ? { "device.battery": battery } : {}),
                         },
                     },
                     { new: true }
@@ -59,10 +77,10 @@ export class IoTService {
 
                 io.to(`patient:${topicIdentifier}`).emit('location-update', {
                     patientId: topicIdentifier,
-                    latitude: data.latitude,
-                    longitude: data.longitude,
-                    timestamp: new Date(),
-                    battery: data.battery,
+                    latitude: lat,
+                    longitude: lng,
+                    timestamp,
+                    battery,
                 });
 
                 console.log(`Updated location for patient with ID ${topicIdentifier}`);

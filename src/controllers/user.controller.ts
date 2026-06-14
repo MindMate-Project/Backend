@@ -60,7 +60,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateUserInfo = asyncHandler(async (req: Request, res: Response) => {
     const user = req.user;
-    const { name, phoneNumber, medicalNotes } = req.body;
+    const { name, phoneNumber, gender, dateOfBirth, medicalNotes } = req.body;
 
     if (!user) {
         res.status(401);
@@ -74,7 +74,12 @@ export const updateUserInfo = asyncHandler(async (req: Request, res: Response) =
             throw new Error("Patient not found");
         }
         patient.name = name || patient.name;
-        patient.medicalNotes = medicalNotes || patient.medicalNotes;
+        if (phoneNumber !== undefined) patient.phoneNumber = phoneNumber;
+        if (gender !== undefined) patient.gender = gender;
+        if (dateOfBirth !== undefined) patient.dateOfBirth = new Date(dateOfBirth);
+        if (medicalNotes !== undefined && typeof medicalNotes === "object") {
+            patient.medicalNotes = medicalNotes;
+        }
         await patient.save();
 
         res.status(200).json({
