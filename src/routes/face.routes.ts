@@ -237,7 +237,7 @@ router.post(
   faceJsonParser,
   faceUrlencodedParser,
   protect,
-  authorize("patient", "caregiver"),
+  authorize("patient"),
   handleUploadSingle(upload, "file"),
   identifyPatientByFace
 );

@@ -3,6 +3,7 @@ import asyncHandler from "express-async-handler";
 import FormData from "form-data";
 import { Patient } from "../models/User";
 import { axiosWithRetry } from "../utils/axiosRetry";
+import { canAccessPatient } from "../utils/ownership";
 
 const normalize = (v: string) => v.trim().toLowerCase();
 
@@ -14,9 +15,16 @@ export const registerPatientFace = asyncHandler(
   async (req, res: Response) => {
     const user = req.user;
 
-    if (!user || user.role !== "patient") {
+    // A patient registers faces on their own record; a caregiver registers them
+    // for an assigned patient (patientId in the body). Authorization is enforced
+    // by canAccessPatient, which already handles patient-self and caregiver-
+    // assignment rules.
+    const targetPatientId =
+      user?.role === "patient" ? String(user._id) : req.body.patientId;
+
+    if (!targetPatientId || !(await canAccessPatient(user, targetPatientId))) {
       res.status(403);
-      throw new Error("Only patients can register faces");
+      throw new Error("You are not allowed to manage faces for this patient");
     }
 
     const { firstName, lastName, relationship } = req.body;
@@ -38,7 +46,7 @@ export const registerPatientFace = asyncHandler(
       throw new Error("Maximum 8 images allowed");
     }
 
-    const patient = await Patient.findById(user._id);
+    const patient = await Patient.findById(targetPatientId);
     if (!patient) {
       res.status(404);
       throw new Error("Patient not found");
@@ -119,9 +127,12 @@ export const addPhotosToKnownPerson = asyncHandler(
   async (req, res: Response) => {
     const user = req.user;
 
-    if (!user || user.role !== "patient") {
+    const targetPatientId =
+      user?.role === "patient" ? String(user._id) : req.body.patientId;
+
+    if (!targetPatientId || !(await canAccessPatient(user, targetPatientId))) {
       res.status(403);
-      throw new Error("Only patients can add photos");
+      throw new Error("You are not allowed to manage faces for this patient");
     }
 
     const { firstName, lastName } = req.body;
@@ -138,7 +149,7 @@ export const addPhotosToKnownPerson = asyncHandler(
       throw new Error("At least 1 image is required");
     }
 
-    const patient = await Patient.findById(user._id);
+    const patient = await Patient.findById(targetPatientId);
     if (!patient) {
       res.status(404);
       throw new Error("Patient not found");
