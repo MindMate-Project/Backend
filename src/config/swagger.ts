@@ -6,15 +6,32 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Alzheimer API",
+      title: "MindMate API",
       version: "1.0.0",
-      description: "API documentation for Healthcare and Patient Care Management",
+      description:
+        "REST API for MindMate — Alzheimer's patient care. Auth, profiles, " +
+        "reminders, memories, alerts, device location, and face recognition.",
     },
     servers: [
       {
-        url: "http://localhost:4000",
-        description: "Development server",
+        url: "https://alzaheimer-backend.onrender.com",
+        description: "Production",
       },
+      {
+        url: "http://localhost:4000",
+        description: "Local development",
+      },
+    ],
+    tags: [
+      { name: "Auth", description: "Registration, login, email verification, password reset" },
+      { name: "Users", description: "Shared account actions (profile picture)" },
+      { name: "Patients", description: "Patient profile and caregiver links" },
+      { name: "Caregivers", description: "Caregiver profile and patient assignments" },
+      { name: "Reminders", description: "Appointment & medication reminders" },
+      { name: "Memories", description: "Memory Bank items (photo/video/text)" },
+      { name: "Alerts", description: "Patient alerts and acknowledgement" },
+      { name: "Devices", description: "IoT device location & assignment" },
+      { name: "Face", description: "Face registration and identification" },
     ],
     components: {
       securitySchemes: {
@@ -22,6 +39,35 @@ const options: swaggerJsdoc.Options = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
+        },
+      },
+      schemas: {
+        Error: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: false },
+            status: { type: "string", example: "fail" },
+            message: { type: "string", example: "Something went wrong" },
+          },
+        },
+        AuthResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string", example: "Login successful" },
+            token: { type: "string", description: "JWT bearer token" },
+            data: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                name: { type: "string" },
+                email: { type: "string" },
+                role: {
+                  type: "string",
+                  enum: ["user", "patient", "caregiver", "admin"],
+                },
+              },
+            },
+          },
         },
       },
     },

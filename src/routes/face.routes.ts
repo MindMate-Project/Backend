@@ -30,7 +30,11 @@ const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb"
  * @swagger
  * /api/face/patient/register-face:
  *   post:
- *     summary: Register a known person face profile for a patient
+ *     summary: Register a known person for a patient (patient self, or caregiver for an assigned patient)
+ *     description: >
+ *       A patient registers people on their own record. A caregiver registers
+ *       them for an assigned patient by including the patientId field; access is
+ *       enforced by patient assignment.
  *     tags: [Face]
  *     security:
  *       - bearerAuth: []
@@ -42,6 +46,9 @@ const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb"
  *             type: object
  *             required: [firstName, lastName, relationship, files]
  *             properties:
+ *               patientId:
+ *                 type: string
+ *                 description: Required when a caregiver registers for an assigned patient; ignored for patient self-registration
  *               firstName:
  *                 type: string
  *               lastName:
@@ -100,7 +107,10 @@ router.post(
  * @swagger
  * /api/face/patient/add-photos:
  *   post:
- *     summary: Add additional photos to an existing known person
+ *     summary: Add photos to an existing known person (patient self, or caregiver for an assigned patient)
+ *     description: >
+ *       Same access model as register-face: a caregiver must include the
+ *       patientId of an assigned patient; a patient acts on their own record.
  *     tags: [Face]
  *     security:
  *       - bearerAuth: []
@@ -112,6 +122,9 @@ router.post(
  *             type: object
  *             required: [firstName, lastName, files]
  *             properties:
+ *               patientId:
+ *                 type: string
+ *                 description: Required when a caregiver acts for an assigned patient
  *               firstName:
  *                 type: string
  *               lastName:

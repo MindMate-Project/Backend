@@ -160,9 +160,23 @@ router.post(
  *         schema:
  *           type: string
  *         description: Patient ID
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, format: date-time }
+ *         description: Only reminders scheduled at/after this time
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, format: date-time }
+ *         description: Only reminders scheduled at/before this time
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: skip
+ *         schema: { type: integer }
  *     responses:
  *       200:
- *         description: List of patient reminders
+ *         description: List of patient reminders (plain array; unchanged when no query params)
  *         content:
  *           application/json:
  *             schema:
