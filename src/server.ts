@@ -29,6 +29,10 @@ startReminderCron();
 startDeviceOfflineCron();
 startUnacknowledgedReminderCron();
 const app = express();
+// Render (and most PaaS hosts) sit behind a reverse proxy; without this,
+// req.ip resolves to the proxy's address for every request, so the IP-keyed
+// rate limiters below would bucket all clients together instead of per-client.
+app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 setupSwagger(app);
 app.use(express.json({ limit: "10mb" }));
