@@ -69,6 +69,14 @@ export interface IPatientDevice {
     longitude: number;
     timestamp: Date;
     battery?: number;
+    outOfBoundsAlertSent?: boolean;
+    offlineAlertSent?: boolean;
+}
+
+export interface IHomeLocation {
+    lat: number;
+    lng: number;
+    radiusMeters: number;
 }
 
 export interface IPendingCaregiverRequest {
@@ -82,6 +90,7 @@ export interface IPendingCaregiverRequest {
 export interface IPatient extends IMongooseBaseUser, IPatientProperties {
     known_people: IKnownPerson[];
     device: IPatientDevice;
+    homeLocation?: IHomeLocation;
 }
 
 export interface ICaregiver extends IMongooseBaseUser, ICaregiverProperties {}
@@ -221,7 +230,14 @@ const patientSchema = new Schema({
         latitude: { type: Number },
         longitude: { type: Number },
         timestamp: { type: Date, default: Date.now },
-        battery: { type: Number }
+        battery: { type: Number },
+        outOfBoundsAlertSent: { type: Boolean, default: false },
+        offlineAlertSent: { type: Boolean, default: false }
+    },
+    homeLocation: {
+        lat: { type: Number },
+        lng: { type: Number },
+        radiusMeters: { type: Number }
     }
 });
 
