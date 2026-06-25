@@ -285,9 +285,9 @@ export const updatePatientInfo = asyncHandler(async (req: Request, res: Response
             patient._id,
             { $set: updateFields },
             { new: true, runValidators: true }
-          ).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+          ).select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion')
         : await Patient.findById(patient._id)
-          .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+          .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion');
 
     res.status(200).json({
         message: "Patient information updated successfully",

@@ -16,7 +16,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
     if (user.role === "patient") {
         const patient = await Patient
             .findById(user._id)
-            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion')
             .populate("caregivers", "name email phoneNumber");
 
         if (!patient) {
@@ -33,7 +33,7 @@ export const getUserInfo = asyncHandler(async (req: Request, res: Response) => {
     } else if (user.role === "caregiver") {
         const caregiver = await Caregiver
             .findById(user._id)
-            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken')
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion')
             .populate({
                 path: "patients.patient",
                 model: "User",
@@ -145,7 +145,7 @@ export const uploadProfilePicture = asyncHandler(async (req: Request, res: Respo
             profilePicture_public_id: file.filename,
         },
         { new: true }
-    ).select("-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken");
+    ).select("-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion");
 
     res.status(200).json({
         message: "Profile picture updated successfully",

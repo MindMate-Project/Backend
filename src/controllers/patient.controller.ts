@@ -60,7 +60,7 @@ export const getCaregiverInfo = asyncHandler(async (req: Request, res: Response)
     }
 
     const caregiver = await Caregiver.findById(caregiverId)
-        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+        .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion');
 
     if (!caregiver) {
         res.status(404);
@@ -165,10 +165,10 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
         await patient.save();
 
         const updatedPatient = await Patient.findById(patient._id)
-            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion');
 
         const updatedCaregiver = await Caregiver.findById(caregiverId)
-            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+            .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken -tokenVersion');
 
         try {
             if (updatedCaregiver?.fcmTokens?.length) {
