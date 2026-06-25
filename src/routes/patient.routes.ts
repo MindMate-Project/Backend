@@ -72,7 +72,7 @@ router.get(
  *             properties:
  *               name:
  *                 type: string
- *               phone:
+ *               phoneNumber:
  *                 type: string
  *               dateOfBirth:
  *                 type: string
@@ -188,7 +188,7 @@ router.get(
  *                 _id: "67d2a93c5f4c1f6f91361c81"
  *                 name: "Caregiver One"
  *                 email: "caregiver1@example.com"
- *                 phone: "+201111111111"
+ *                 phoneNumber: "+201111111111"
  *       400:
  *         description: Invalid caregiver ID
  *       401:

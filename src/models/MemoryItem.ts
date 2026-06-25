@@ -1,7 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IMemoryItem extends Document {
-  patient_id: string;
+  patient_id: Types.ObjectId;
   type: "photo" | "video" | "text";
   title: string;
   caption: string;
@@ -15,7 +15,8 @@ export interface IMemoryItem extends Document {
 const MemoryItemSchema = new Schema<IMemoryItem>(
   {
     patient_id: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "patient",
       required: true,
       index: true,
     },

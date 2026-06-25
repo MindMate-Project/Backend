@@ -10,7 +10,8 @@ interface AuthenticatedRequest extends Request {
 
 // 2. Define the JWT Payload structure
 interface DecodedToken extends JwtPayload {
-    id: string; 
+    id: string;
+    tokenVersion?: number;
 }
 
 // --- PROTECT MIDDLEWARE (Authentication Check) ---
@@ -35,14 +36,21 @@ export const protect = asyncHandler(async (
             // Find the user by ID
             // Mongoose returns a document that implements the type IMongooseBaseUser
             const user = await User.findById(decoded.id).select('-password');
-            
+
             if (!user) {
                 res.status(401);
                 throw new Error('Not authorized, user not found');
             }
 
+            // Tokens issued before a password reset carry the old tokenVersion
+            // and must be rejected even though the signature still verifies.
+            if ((decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+                res.status(401);
+                throw new Error('Session expired, please log in again');
+            }
+
             // The user object is correctly typed and attached
-            req.user = user as IMongooseBaseUser; 
+            req.user = user as IMongooseBaseUser;
             
             next();
 

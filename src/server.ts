@@ -29,11 +29,23 @@ startReminderCron();
 startDeviceOfflineCron();
 startUnacknowledgedReminderCron();
 const app = express();
+// Render (and most PaaS hosts) sit behind a reverse proxy; without this,
+// req.ip resolves to the proxy's address for every request, so the IP-keyed
+// rate limiters below would bucket all clients together instead of per-client.
+app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 setupSwagger(app);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(cors());
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+}));
+
 const server = http.createServer(app);
 
 export const io = setupLocationSocket(server);
@@ -46,8 +58,20 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
     message: { success: false, message: "Too many attempts, please try again later." },
 });
+// Looser, general-purpose limiter for everything else under /api. Mounted
+// after the /api/auth routes so those requests are governed only by the
+// stricter authLimiter above, not double-counted here.
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many requests, please try again later." },
+});
+
 app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/users", userRoutes);                     
+app.use("/api", generalLimiter);
+app.use("/api/users", userRoutes);
 app.use("/api/memories", memoryItemRoutes);
 app.use("/api/caregiver", caregiverRoutes);
 app.use("/api/patient", patientRoutes);

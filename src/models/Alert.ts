@@ -11,7 +11,7 @@ const alertSchema = new Schema<IAlert>(
   {
     patient_id: {
       type: Schema.Types.ObjectId,
-      ref: "Patient",
+      ref: "patient",
       required: true,
     },
     alert_type: {
@@ -25,7 +25,7 @@ const alertSchema = new Schema<IAlert>(
     },
     acknowledged_by: {
       type: Schema.Types.ObjectId,
-      ref: "Caregiver",
+      ref: "caregiver",
     },
   },
   { timestamps: true }

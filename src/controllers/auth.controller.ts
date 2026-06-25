@@ -54,7 +54,6 @@ export const registerUser = asyncHandler(
   async (req: Request<{}, {}, RegisterBody>, res: Response): Promise<void> => {
     const {
       name,
-      email,
       password,
       role,
       gender,
@@ -65,9 +64,11 @@ export const registerUser = asyncHandler(
       device,
     } = req.body;
 
-    if (!password) {
+    const email = req.body.email?.trim().toLowerCase();
+
+    if (!password || password.length < 8) {
       res.status(400);
-      throw new Error("Password is required for registration.");
+      throw new Error("Password must be at least 8 characters long.");
     }
 
     const userExists = await User.findOne({ email });
@@ -89,6 +90,18 @@ export const registerUser = asyncHandler(
     let user: IMongooseBaseUser;
 
     if (role === "patient") {
+      const deviceId = device?.deviceId || undefined;
+
+      // Mirrors the uniqueness check assignDevice enforces — without it, a
+      // patient could self-register with a deviceId another patient already has.
+      if (deviceId) {
+        const usedDevice = await Patient.findOne({ "device.deviceId": deviceId });
+        if (usedDevice) {
+          res.status(409);
+          throw new Error("This device is already assigned to another patient");
+        }
+      }
+
       user = await Patient.create({
         ...baseFields,
         role: "patient",
@@ -103,7 +116,7 @@ export const registerUser = asyncHandler(
             }
           : undefined,
         device: {
-          deviceId: device?.deviceId || undefined,
+          deviceId,
         },
       } as unknown as IPatient);
 
@@ -200,7 +213,8 @@ export const verifyUserAccount = asyncHandler(
  * @access Public
  */
 export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, res: Response) => {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     // 1. Find user (Mongoose will return IMongooseBaseUser)
      const user = await User.findOne({ email }).select('+password');
@@ -213,7 +227,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
             throw new Error('Please verify your account first. Check your email for the activation link.');
         }
 
-        const token = generateToken(user._id as mongoose.Types.ObjectId);
+        const token = generateToken(user._id as mongoose.Types.ObjectId, user.tokenVersion ?? 0);
         res.json({
             message: "Login successful",
             token,
@@ -239,7 +253,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
  * @access Public
  */
 export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPasswordBody>, res: Response) => {
-    const { email } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     const genericMessage =
         "If an account exists for that email, a password reset code has been sent.";
@@ -322,10 +336,16 @@ export const verifyResetPassword = asyncHandler(async (req: Request<{},{},verify
 
 })
 export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
-    const { email, code, password, passwordConfirmation } = req.body;
+    const { code, password, passwordConfirmation } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
      if (!password || password !== passwordConfirmation) {
       res.status(400);
       throw new Error("Passwords do not match");
+    }
+
+    if (password.length < 8) {
+      res.status(400);
+      throw new Error("Password must be at least 8 characters long.");
     }
 
     if (!code) {
@@ -356,10 +376,13 @@ export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPassw
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
 
+    // Invalidate any tokens issued before this reset (e.g. a stolen token).
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+
     await user.save();
 
     // Log the user in immediately
-    const token = generateToken(user._id as mongoose.Types.ObjectId);
+    const token = generateToken(user._id as mongoose.Types.ObjectId, user.tokenVersion);
 
     res.status(200).json({
         message: "Password has been reset successfully.",

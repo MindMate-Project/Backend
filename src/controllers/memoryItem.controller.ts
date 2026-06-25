@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
+import { Types } from "mongoose";
 import MemoryItem from "../models/MemoryItem";
 import cloudinary from "../config/cloudinary";
 import { canAccessPatient, patientIdsFor } from "../utils/ownership";
@@ -18,6 +19,11 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
   if (!patient_id) {
     res.status(400);
     throw new Error("patient_id is required");
+  }
+
+  if (!Types.ObjectId.isValid(patient_id)) {
+    res.status(400);
+    throw new Error("Invalid patient_id");
   }
 
   if (!type) {
@@ -77,6 +83,11 @@ export const createMemory = asyncHandler(async (req: Request, res: Response) => 
 export const getPatientMemories = asyncHandler(async (req: Request, res: Response) => {
   const { patientId } = req.params;
 
+  if (!Types.ObjectId.isValid(patientId)) {
+    res.status(400);
+    throw new Error("Invalid patient ID");
+  }
+
   if (!(await canAccessPatient(req.user, patientId))) {
     res.status(403);
     throw new Error("Access denied");
@@ -98,6 +109,11 @@ export const getPatientMemories = asyncHandler(async (req: Request, res: Respons
  * @access Private
  */
 export const getMemoryById = asyncHandler(async (req: Request, res: Response) => {
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid memory ID");
+  }
+
   const memory = await MemoryItem.findById(req.params.id);
 
   if (!memory) {
@@ -122,6 +138,11 @@ export const getMemoryById = asyncHandler(async (req: Request, res: Response) =>
  */
 export const updateMemory = asyncHandler(async (req: Request, res: Response) => {
   const { title, caption, relation, date, tags } = req.body;
+
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid memory ID");
+  }
 
   const memory = await MemoryItem.findById(req.params.id);
 
@@ -166,6 +187,11 @@ export const updateMemory = asyncHandler(async (req: Request, res: Response) => 
  * @access Private (Caregiver / Admin)
  */
 export const deleteMemory = asyncHandler(async (req: Request, res: Response) => {
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid memory ID");
+  }
+
   const memory = await MemoryItem.findById(req.params.id);
 
   if (!memory) {
@@ -198,7 +224,7 @@ export const deleteMemory = asyncHandler(async (req: Request, res: Response) => 
  * @access Private
  */
 export const searchMemoryByTags = asyncHandler(async (req: Request, res: Response) => {
-  const { tags } = req.query;
+  const { tags, patientId } = req.query;
 
   if (!tags) {
     res.status(400);
@@ -209,7 +235,13 @@ export const searchMemoryByTags = asyncHandler(async (req: Request, res: Respons
   const query: Record<string, unknown> = { tags: { $in: tagList } };
 
   const user = req.user!;
-  if (user.role !== "admin") {
+  if (patientId) {
+    if (!Types.ObjectId.isValid(patientId as string) || !(await canAccessPatient(user, patientId as string))) {
+      res.status(403);
+      throw new Error("Access denied");
+    }
+    query.patient_id = patientId as string;
+  } else if (user.role !== "admin") {
     query.patient_id = { $in: await patientIdsFor(user) };
   }
 

@@ -233,6 +233,11 @@ export const getPatientReminders = asyncHandler(async (req: Request, res: Respon
 ============================================================= */
 export const getReminderById = asyncHandler(async (req: Request, res: Response) => {
   try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      res.status(400).json({ message: "Invalid reminder ID" });
+      return;
+    }
+
     const reminder = await Reminder.findById(req.params.id).populate(
       "patient caregiver"
     );
@@ -260,6 +265,11 @@ export const getReminderById = asyncHandler(async (req: Request, res: Response) 
 ============================================================= */
 export const updateReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      res.status(400).json({ message: "Invalid reminder ID" });
+      return;
+    }
+
     const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
@@ -292,6 +302,11 @@ export const updateReminder = asyncHandler(async (req: Request, res: Response) =
 ============================================================= */
 export const deleteReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      res.status(400).json({ message: "Invalid reminder ID" });
+      return;
+    }
+
     const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
@@ -318,6 +333,11 @@ export const deleteReminder = asyncHandler(async (req: Request, res: Response) =
 ============================================================= */
 export const acknowledgeReminder = asyncHandler(async (req: Request, res: Response) => {
   try {
+    if (!Types.ObjectId.isValid(req.params.id)) {
+      res.status(400).json({ message: "Invalid reminder ID" });
+      return;
+    }
+
     const reminder = await Reminder.findById(req.params.id);
 
     if (!reminder) {
