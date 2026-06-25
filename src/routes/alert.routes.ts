@@ -28,12 +28,13 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [patient_id, alert_type]
  *             properties:
- *               patient: { type: string, description: Patient id (required when caregiver raises it) }
- *               type: { type: string, example: sos }
- *               message: { type: string }
+ *               patient_id: { type: string, description: Patient id (a patient raising their own alert passes their own id) }
+ *               alert_type: { type: string, example: sos }
  *     responses:
  *       201: { description: Alert created }
+ *       400: { description: Missing fields or invalid/unknown patient_id, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  *       403: { description: Not allowed for this patient, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post("/", protect, authorize("patient", "caregiver", "admin"), createAlert);
@@ -52,6 +53,7 @@ router.post("/", protect, authorize("patient", "caregiver", "admin"), createAler
  *         schema: { type: string }
  *     responses:
  *       200: { description: List of alerts }
+ *       400: { description: Invalid patient ID }
  *       403: { description: Access denied }
  */
 router.get(
@@ -75,6 +77,8 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: Alert found }
+ *       400: { description: Invalid alert ID }
+ *       403: { description: Access denied }
  *       404: { description: Alert not found }
  *   put:
  *     summary: Acknowledge an alert (caregiver/admin)
@@ -87,6 +91,8 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: Alert acknowledged }
+ *       400: { description: Invalid alert ID, or alert already acknowledged }
+ *       403: { description: Access denied }
  *       404: { description: Alert not found }
  *   delete:
  *     summary: Delete an alert (caregiver/admin)
@@ -99,6 +105,8 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: Alert deleted }
+ *       400: { description: Invalid alert ID }
+ *       403: { description: Access denied }
  *       404: { description: Alert not found }
  */
 router
