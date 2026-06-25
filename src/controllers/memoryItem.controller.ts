@@ -224,7 +224,7 @@ export const deleteMemory = asyncHandler(async (req: Request, res: Response) => 
  * @access Private
  */
 export const searchMemoryByTags = asyncHandler(async (req: Request, res: Response) => {
-  const { tags } = req.query;
+  const { tags, patientId } = req.query;
 
   if (!tags) {
     res.status(400);
@@ -235,7 +235,13 @@ export const searchMemoryByTags = asyncHandler(async (req: Request, res: Respons
   const query: Record<string, unknown> = { tags: { $in: tagList } };
 
   const user = req.user!;
-  if (user.role !== "admin") {
+  if (patientId) {
+    if (!Types.ObjectId.isValid(patientId as string) || !(await canAccessPatient(user, patientId as string))) {
+      res.status(403);
+      throw new Error("Access denied");
+    }
+    query.patient_id = patientId as string;
+  } else if (user.role !== "admin") {
     query.patient_id = { $in: await patientIdsFor(user) };
   }
 
