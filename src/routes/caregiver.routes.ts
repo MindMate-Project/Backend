@@ -42,7 +42,7 @@ const router = Router();
  *                 name: "Caregiver One"
  *                 email: "caregiver@example.com"
  *                 role: "caregiver"
- *                 phone: "+201234567890"
+ *                 phoneNumber: "+201234567890"
  *                 patients: []
  *       401:
  *         description: Unauthorized
@@ -73,7 +73,7 @@ router.get(
  *             properties:
  *               name:
  *                 type: string
- *               phone:
+ *               phoneNumber:
  *                 type: string
  *               relation:
  *                 type: string
@@ -97,7 +97,7 @@ router.get(
  *               data:
  *                 _id: "67d2a93c5f4c1f6f91361c81"
  *                 name: "Updated Caregiver"
- *                 phone: "+201234567890"
+ *                 phoneNumber: "+201234567890"
  *       400:
  *         description: Invalid request payload
  *       401:
