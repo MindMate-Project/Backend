@@ -1,7 +1,10 @@
 import mqtt from 'mqtt';
 import { io } from '../server';
-import { Patient } from '../models/User';
+import { Caregiver, IPatient, Patient } from '../models/User';
 import { Types } from 'mongoose';
+import Alert from '../models/Alert';
+import { sendPush } from '../services/firebase.service';
+import { getDistanceMeters } from '../utils/geo';
 
 export class IoTService {
     private client: mqtt.MqttClient;
@@ -62,13 +65,16 @@ export class IoTService {
                         : undefined;
                 const timestamp = new Date();
 
-                await Patient.findByIdAndUpdate(
+                // Reset the offline flag here so a fresh message always marks the
+                // device back online; deviceOfflineCron is the only place that sets it.
+                const updatedPatient = await Patient.findByIdAndUpdate(
                     topicIdentifier,
                     {
                         $set: {
                             "device.latitude": lat,
                             "device.longitude": lng,
                             "device.timestamp": timestamp,
+                            "device.offlineAlertSent": false,
                             ...(battery !== undefined ? { "device.battery": battery } : {}),
                         },
                     },
@@ -85,6 +91,10 @@ export class IoTService {
 
                 console.log(`Updated location for patient with ID ${topicIdentifier}`);
 
+                if (updatedPatient) {
+                    await this.checkGeofence(updatedPatient, lat, lng);
+                }
+
             } catch (error) {
                 console.error('Error processing location data:', error);
             }
@@ -93,6 +103,44 @@ export class IoTService {
         this.client.on('error', (error) => {
             console.error('MQTT Error:', error);
         });
+    }
+
+    private async checkGeofence(patient: IPatient, lat: number, lng: number) {
+        const home = patient.homeLocation;
+        if (!home) return;
+
+        const distance = getDistanceMeters(lat, lng, home.lat, home.lng);
+        const isOutOfBounds = distance > home.radiusMeters;
+
+        if (isOutOfBounds && !patient.device.outOfBoundsAlertSent) {
+            try {
+                await Alert.create({
+                    patient_id: patient._id,
+                    alert_type: "location_out_of_bounds",
+                    timestamp: new Date(),
+                });
+            } catch (error) {
+                console.error(`Failed to create out-of-bounds alert for patient ${patient._id}:`, error);
+            }
+
+            try {
+                const caregivers = await Caregiver.find({ _id: { $in: patient.caregivers } }).select("fcmTokens");
+                const tokens = caregivers.flatMap((caregiver) => caregiver.fcmTokens || []);
+                if (tokens.length > 0) {
+                    await sendPush(tokens, "Location Alert", `${patient.name} has left the safe zone`);
+                }
+            } catch (error) {
+                console.error(`Failed to send geofence notification for patient ${patient._id}:`, error);
+            }
+
+            await Patient.findByIdAndUpdate(patient._id, {
+                $set: { "device.outOfBoundsAlertSent": true },
+            });
+        } else if (!isOutOfBounds && patient.device.outOfBoundsAlertSent) {
+            await Patient.findByIdAndUpdate(patient._id, {
+                $set: { "device.outOfBoundsAlertSent": false },
+            });
+        }
     }
 
     public disconnect() {

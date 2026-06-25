@@ -7,13 +7,16 @@ import { IMongooseBaseUser } from "./User";
 
 export interface IBaseReminder extends Document {
   type: "appointment" | "medication";
-  patient: Types.ObjectId | IMongooseBaseUser; 
+  patient: Types.ObjectId | IMongooseBaseUser;
   caregiver: Types.ObjectId | IMongooseBaseUser;
   scheduledTime: Date;
   isSent: boolean;
+  isAcknowledged?: boolean;
+  reminderAlertSent?: boolean;
   groupId?: string;
   location?: string;
   medicineName?: string;
+  doctorName?: string;
   dosage?: string;
 }
 
@@ -47,6 +50,16 @@ const ReminderSchema = new Schema<IBaseReminder>(
       type: Boolean,
       default: false,
     },
+    isAcknowledged: {
+      type: Boolean,
+      default: false,
+    },
+    // Set once the unacknowledged-reminder cron has notified caregivers, so it
+    // doesn't re-alert on every run while the reminder stays unacknowledged.
+    reminderAlertSent: {
+      type: Boolean,
+      default: false,
+    },
     // Links all rows created from one request (a medication's many doses, or an
     // appointment plus its lead-time rows) so the schedule can be deleted as a
     // unit. Optional: legacy rows created before this field have none.
@@ -58,6 +71,7 @@ const ReminderSchema = new Schema<IBaseReminder>(
   baseOptions
 );
 ReminderSchema.index({ isSent: 1, scheduledTime: 1 });
+ReminderSchema.index({ isAcknowledged: 1, scheduledTime: 1 });
 
 export const Reminder = mongoose.model<IBaseReminder>("Reminder", ReminderSchema);
 

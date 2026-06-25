@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Caregiver, IPatient, Patient } from "../models/User";
 import asyncHandler from "express-async-handler";
 import { Types } from "mongoose";
+import { sendPush } from "../services/firebase.service";
 
 export const getAllPatients = asyncHandler(async (req: Request, res: Response) => {
     const user = req.user;
@@ -167,7 +168,19 @@ export const assignPatientToCaregiver = asyncHandler(async (req: Request, res: R
         res.status(404);
         throw new Error("Caregiver not found");
     }
- 
+
+    try {
+        if (patient.fcmTokens?.length) {
+            await sendPush(
+                patient.fcmTokens,
+                "New Caregiver Request",
+                `${caregiver.name} wants to connect as your caregiver`
+            );
+        }
+    } catch (error) {
+        console.error("Failed to send assignment request notification:", error);
+    }
+
     res.status(200).json({
         message: "Assignment request sent. Waiting for patient response",
         data: {

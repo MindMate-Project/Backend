@@ -313,6 +313,33 @@ export const deleteReminder = asyncHandler(async (req: Request, res: Response) =
 });
 
 /* =============================================================
+    ✅ Acknowledge Reminder
+    Patient confirms they saw/responded to a sent reminder.
+============================================================= */
+export const acknowledgeReminder = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const reminder = await Reminder.findById(req.params.id);
+
+    if (!reminder) {
+      res.status(404).json({ message: "Reminder not found" });
+      return;
+    }
+
+    if (!(await canAccessPatient(req.user, reminder.patient as any))) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    reminder.isAcknowledged = true;
+    await reminder.save();
+
+    res.json(reminder);
+  } catch (error) {
+    res.status(500).json({ message: "Error acknowledging reminder" });
+  }
+});
+
+/* =============================================================
     ✅ Delete Reminder Series
     Removes every reminder sharing a groupId (a whole medication
     schedule, or an appointment plus its lead-time rows).
