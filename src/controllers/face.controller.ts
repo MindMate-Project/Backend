@@ -101,17 +101,22 @@ export const registerPatientFace = asyncHandler(
       throw new Error("Face processing failed");
     }
 
-    patient.known_people.push({
-      firstName,
-      lastName,
-      relationship,
-      average_embedding,
-      embeddings_count: count,
-      created_at: new Date(),
-      updated_at: new Date()
+    // Atomic $push instead of load->mutate->save, so a concurrent request for
+    // the same patient (e.g. caregiver + patient registering different people
+    // at once) can't silently lose one of the two array appends.
+    await Patient.findByIdAndUpdate(targetPatientId, {
+      $push: {
+        known_people: {
+          firstName,
+          lastName,
+          relationship,
+          average_embedding,
+          embeddings_count: count,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      },
     });
-
-    await patient.save();
 
     res.status(200).json({
       success: true,
@@ -214,11 +219,23 @@ export const addPhotosToKnownPerson = asyncHandler(
       throw new Error("Face processing failed");
     }
 
-    knownPerson.average_embedding = new_embedding;
-    knownPerson.embeddings_count = new_count;
-    knownPerson.updated_at = new Date();
-
-    await patient.save();
+    // Atomic positional update instead of mutate->save, so a concurrent
+    // request for the same person can't overwrite this update (lost write).
+    await Patient.findByIdAndUpdate(
+      targetPatientId,
+      {
+        $set: {
+          "known_people.$[elem].average_embedding": new_embedding,
+          "known_people.$[elem].embeddings_count": new_count,
+          "known_people.$[elem].updated_at": new Date(),
+        },
+      },
+      {
+        arrayFilters: [
+          { "elem.firstName": knownPerson.firstName, "elem.lastName": knownPerson.lastName },
+        ],
+      }
+    );
 
     res.status(200).json({
       success: true,
