@@ -15,7 +15,7 @@ export const getAllPatients = asyncHandler(async (req: Request, res: Response) =
     const caregiver = await Caregiver.findById(user._id).populate({
         path: "patients.patient",
         model: Patient,
-        select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
+        select: "name email dateOfBirth gender address phoneNumber medicalNotes device homeLocation"
     });
 
     if (!caregiver) {
@@ -35,6 +35,7 @@ export const getAllPatients = asyncHandler(async (req: Request, res: Response) =
             phoneNumber: patient.phoneNumber,
             medicalNotes: patient.medicalNotes,
             device: patient.device,
+            homeLocation: patient.homeLocation,
             relationship: ref.relationship,
             connectedAt: ref.connectedAt
         };
@@ -63,7 +64,7 @@ export const getPatientInfo = asyncHandler(async (req: Request, res: Response) =
     const caregiver = await Caregiver.findById(user._id).populate({
         path: "patients.patient",
         model: Patient,
-        select: "name email dateOfBirth gender address phoneNumber medicalNotes device"
+        select: "name email dateOfBirth gender address phoneNumber medicalNotes device homeLocation"
     });
  
     if (!caregiver) {
@@ -97,6 +98,7 @@ export const getPatientInfo = asyncHandler(async (req: Request, res: Response) =
             phoneNumber: p.phoneNumber,
             medicalNotes: p.medicalNotes,
             device: p.device,
+            homeLocation: p.homeLocation,
             relationship: patientRef.relationship,
             connectedAt: patientRef.connectedAt
         }
