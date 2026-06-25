@@ -54,7 +54,6 @@ export const registerUser = asyncHandler(
   async (req: Request<{}, {}, RegisterBody>, res: Response): Promise<void> => {
     const {
       name,
-      email,
       password,
       role,
       gender,
@@ -64,6 +63,8 @@ export const registerUser = asyncHandler(
       medicalNotes,
       device,
     } = req.body;
+
+    const email = req.body.email?.trim().toLowerCase();
 
     if (!password || password.length < 8) {
       res.status(400);
@@ -200,7 +201,8 @@ export const verifyUserAccount = asyncHandler(
  * @access Public
  */
 export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, res: Response) => {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     // 1. Find user (Mongoose will return IMongooseBaseUser)
      const user = await User.findOne({ email }).select('+password');
@@ -239,7 +241,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
  * @access Public
  */
 export const forgotPassword = asyncHandler(async (req: Request<{}, {}, ForgotPasswordBody>, res: Response) => {
-    const { email } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
 
     const genericMessage =
         "If an account exists for that email, a password reset code has been sent.";
@@ -322,7 +324,8 @@ export const verifyResetPassword = asyncHandler(async (req: Request<{},{},verify
 
 })
 export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPasswordBody>, res: Response) => {
-    const { email, code, password, passwordConfirmation } = req.body;
+    const { code, password, passwordConfirmation } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
      if (!password || password !== passwordConfirmation) {
       res.status(400);
       throw new Error("Passwords do not match");

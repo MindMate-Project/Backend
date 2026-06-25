@@ -116,6 +116,8 @@ const userSchema = new Schema(
             type: String,
             required: true,
             unique: true,
+            lowercase: true,
+            trim: true,
             validate: [validator.isEmail, "Enter a valid email"]
         },
         password: {

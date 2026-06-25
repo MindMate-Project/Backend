@@ -119,8 +119,8 @@ export const assignPatientToCaregiver = asyncHandler(async (req: Request, res: R
         throw new Error("A valid relationship is required");
     }
  
-    const patient = await Patient.findOne({ email: patientEmail });
- 
+    const patient = await Patient.findOne({ email: patientEmail?.trim().toLowerCase() });
+
     if (!patient) {
         res.status(404);
         throw new Error("Patient not found");
