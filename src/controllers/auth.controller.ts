@@ -65,9 +65,9 @@ export const registerUser = asyncHandler(
       device,
     } = req.body;
 
-    if (!password) {
+    if (!password || password.length < 8) {
       res.status(400);
-      throw new Error("Password is required for registration.");
+      throw new Error("Password must be at least 8 characters long.");
     }
 
     const userExists = await User.findOne({ email });
@@ -326,6 +326,11 @@ export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPassw
      if (!password || password !== passwordConfirmation) {
       res.status(400);
       throw new Error("Passwords do not match");
+    }
+
+    if (password.length < 8) {
+      res.status(400);
+      throw new Error("Password must be at least 8 characters long.");
     }
 
     if (!code) {

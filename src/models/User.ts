@@ -118,7 +118,12 @@ const userSchema = new Schema(
             unique: true,
             validate: [validator.isEmail, "Enter a valid email"]
         },
-        password: { type: String, required: true, select: false },
+        password: {
+            type: String,
+            required: true,
+            select: false,
+            minlength: [8, "Password must be at least 8 characters long"]
+        },
         fcmTokens: { type: [String], default: [] },
         dateOfBirth: { type: Date },
         role: {
