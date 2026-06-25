@@ -6,6 +6,7 @@ import {
   updateReminder,
   deleteReminder,
   deleteReminderSeries,
+  acknowledgeReminder,
 } from "../controllers/reminder.controller";
 
 import { protect } from "../middlewares/auth.middleware";
@@ -318,6 +319,39 @@ router.delete(
   protect,
   authorize("caregiver", "admin"),
   deleteReminderSeries
+);
+
+/* ===============================
+   ✅ Acknowledge Reminder
+================================ */
+/**
+ * @swagger
+ * /api/reminders/{id}/acknowledge:
+ *   patch:
+ *     summary: Patient acknowledges a sent reminder
+ *     tags: [Reminders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Reminder ID
+ *     responses:
+ *       200:
+ *         description: Reminder acknowledged successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Reminder not found
+ */
+router.patch(
+  "/:id/acknowledge",
+  protect,
+  authorize("patient"),
+  acknowledgeReminder
 );
 
 router
