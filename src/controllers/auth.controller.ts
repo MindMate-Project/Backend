@@ -227,7 +227,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, LoginBody>, re
             throw new Error('Please verify your account first. Check your email for the activation link.');
         }
 
-        const token = generateToken(user._id as mongoose.Types.ObjectId);
+        const token = generateToken(user._id as mongoose.Types.ObjectId, user.tokenVersion ?? 0);
         res.json({
             message: "Login successful",
             token,
@@ -376,10 +376,13 @@ export const resetPassword = asyncHandler(async (req: Request<{}, {}, ResetPassw
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
 
+    // Invalidate any tokens issued before this reset (e.g. a stolen token).
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+
     await user.save();
 
     // Log the user in immediately
-    const token = generateToken(user._id as mongoose.Types.ObjectId);
+    const token = generateToken(user._id as mongoose.Types.ObjectId, user.tokenVersion);
 
     res.status(200).json({
         message: "Password has been reset successfully.",

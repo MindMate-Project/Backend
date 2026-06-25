@@ -32,9 +32,13 @@ export function setupLocationSocket(httpServer: HTTPServer) {
       if (!token) return next(new Error('Unauthorized: no token'));
       if (!process.env.JWT_SECRET_KEY) return next(new Error('Server auth misconfigured'));
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY) as { id: string };
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY) as { id: string; tokenVersion?: number };
       const user = await User.findById(decoded.id).select('-password');
       if (!user) return next(new Error('Unauthorized: user not found'));
+
+      if ((decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+        return next(new Error('Unauthorized: session expired, please log in again'));
+      }
 
       (socket.data as AuthedSocketData).user = user as IMongooseBaseUser;
       next();

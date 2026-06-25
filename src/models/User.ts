@@ -21,6 +21,9 @@ export interface IBaseUser {
     resetSessionToken?: string;
     profilePicture?: string;
     profilePicture_public_id?: string;
+    // Bumped whenever existing tokens should be invalidated (e.g. password
+    // reset); protect/socket auth reject tokens signed with an older version.
+    tokenVersion?: number;
 }
 
 export interface IUserMethods {
@@ -156,6 +159,10 @@ const userSchema = new Schema(
         profilePicture_public_id: {
             type: String,
             default: null,
+        },
+        tokenVersion: {
+            type: Number,
+            default: 0,
         },
     },
     baseOptions
