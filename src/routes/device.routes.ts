@@ -101,11 +101,9 @@ router.get(
  *       400:
  *         description: Invalid payload
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized, or no patient found for patientEmail
  *       403:
  *         description: Forbidden
- *       404:
- *         description: Patient or device not found
  *       409:
  *         description: Device already assigned to another patient
  */

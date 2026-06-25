@@ -37,11 +37,13 @@ const router = express.Router();
  *               title: { type: string }
  *               caption: { type: string }
  *               relation: { type: string }
+ *               date: { type: string, format: date-time }
  *               tags: { type: string, description: Comma-separated or array }
  *               file: { type: string, format: binary, description: Required for photo/video }
  *     responses:
  *       201: { description: Memory created }
- *       400: { description: Validation error }
+ *       400: { description: Validation error, or invalid patient_id }
+ *       403: { description: Not allowed to add memories for this patient }
  */
 router.post(
   "/",
@@ -66,8 +68,11 @@ router.post(
  *       - in: query
  *         name: patientId
  *         schema: { type: string }
+ *         description: Optional - scope the search to one patient instead of all patients the caller can access
  *     responses:
  *       200: { description: "Matching memories ({ results, data })" }
+ *       400: { description: Tags query is required }
+ *       403: { description: Access denied (patientId is invalid or not accessible to the caller) }
  */
 router.get(
   "/search",
@@ -90,6 +95,7 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: "Memories ({ results, data })" }
+ *       400: { description: Invalid patient ID }
  *       403: { description: Access denied }
  */
 router.get(
@@ -113,6 +119,8 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: Memory found }
+ *       400: { description: Invalid memory ID }
+ *       403: { description: Access denied }
  *       404: { description: Memory not found }
  *   put:
  *     summary: Update a memory's text fields (caregiver/admin). Media cannot be changed.
@@ -132,9 +140,12 @@ router.get(
  *               title: { type: string }
  *               caption: { type: string }
  *               relation: { type: string }
+ *               date: { type: string, format: date-time }
  *               tags: { type: array, items: { type: string } }
  *     responses:
  *       200: { description: Memory updated }
+ *       400: { description: Invalid memory ID, or no fields provided to update }
+ *       403: { description: Access denied }
  *       404: { description: Memory not found }
  *   delete:
  *     summary: Delete a memory and its Cloudinary asset (caregiver/admin)
@@ -147,6 +158,8 @@ router.get(
  *         schema: { type: string }
  *     responses:
  *       200: { description: Memory deleted }
+ *       400: { description: Invalid memory ID }
+ *       403: { description: Access denied }
  *       404: { description: Memory not found }
  */
 router

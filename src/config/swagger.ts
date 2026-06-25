@@ -25,12 +25,12 @@ const options: swaggerJsdoc.Options = {
     tags: [
       { name: "Auth", description: "Registration, login, email verification, password reset" },
       { name: "Users", description: "Shared account actions (profile picture)" },
-      { name: "Patients", description: "Patient profile and caregiver links" },
-      { name: "Caregivers", description: "Caregiver profile and patient assignments" },
+      { name: "Patient", description: "Patient profile and caregiver links" },
+      { name: "Caregiver", description: "Caregiver profile and patient assignments" },
       { name: "Reminders", description: "Appointment & medication reminders" },
       { name: "Memories", description: "Memory Bank items (photo/video/text)" },
       { name: "Alerts", description: "Patient alerts and acknowledgement" },
-      { name: "Devices", description: "IoT device location & assignment" },
+      { name: "Device", description: "IoT device location, assignment & safe-zone geofencing" },
       { name: "Face", description: "Face registration and identification" },
     ],
     components: {

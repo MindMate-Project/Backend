@@ -50,6 +50,12 @@ const router = express.Router();
  *         isSent:
  *           type: boolean
  *           description: Whether the reminder was sent
+ *         isAcknowledged:
+ *           type: boolean
+ *           description: Set by the patient via PATCH /api/reminders/{id}/acknowledge
+ *         groupId:
+ *           type: string
+ *           description: Shared by every row created from one request (a medication's doses, or an appointment plus its lead-time reminders); used to delete the whole schedule via DELETE /api/reminders/series
  *
  *     AppointmentReminder:
  *       allOf:
@@ -132,7 +138,9 @@ const router = express.Router();
  *       201:
  *         description: Reminder(s) created successfully
  *       400:
- *         description: Missing or invalid fields
+ *         description: Missing or invalid fields, or scheduledTime is in the past
+ *       403:
+ *         description: Not allowed to create reminders for this patient
  *       500:
  *         description: Server error
  */
@@ -186,6 +194,8 @@ router.post(
  *                 oneOf:
  *                   - $ref: '#/components/schemas/AppointmentReminder'
  *                   - $ref: '#/components/schemas/MedicationReminder'
+ *       403:
+ *         description: Access denied
  *       500:
  *         description: Server error
  */
@@ -223,6 +233,10 @@ router.get(
  *               oneOf:
  *                 - $ref: '#/components/schemas/AppointmentReminder'
  *                 - $ref: '#/components/schemas/MedicationReminder'
+ *       400:
+ *         description: Invalid reminder ID
+ *       403:
+ *         description: Access denied
  *       404:
  *         description: Reminder not found
  *
@@ -258,6 +272,10 @@ router.get(
  *     responses:
  *       200:
  *         description: Reminder updated successfully
+ *       400:
+ *         description: Invalid reminder ID
+ *       403:
+ *         description: Access denied
  *       404:
  *         description: Reminder not found
  *
@@ -275,6 +293,10 @@ router.get(
  *     responses:
  *       200:
  *         description: Reminder deleted successfully
+ *       400:
+ *         description: Invalid reminder ID
+ *       403:
+ *         description: Access denied
  *       404:
  *         description: Reminder not found
  */
@@ -311,6 +333,8 @@ router.get(
  *                   type: integer
  *       400:
  *         description: groupId is required
+ *       403:
+ *         description: Access denied
  *       404:
  *         description: Reminder series not found
  */
@@ -342,6 +366,8 @@ router.delete(
  *     responses:
  *       200:
  *         description: Reminder acknowledged successfully
+ *       400:
+ *         description: Invalid reminder ID
  *       403:
  *         description: Access denied
  *       404:

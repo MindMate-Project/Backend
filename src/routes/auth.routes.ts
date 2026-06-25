@@ -15,21 +15,40 @@ const router : Router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password, role]
+ *             required: [name, email, password, gender, address, phoneNumber]
  *             properties:
  *               name: { type: string }
  *               email: { type: string, format: email }
- *               password: { type: string, format: password }
- *               role: { type: string, enum: [patient, caregiver] }
+ *               password: { type: string, format: password, minLength: 8 }
+ *               role: { type: string, enum: [user, patient, caregiver], description: Defaults to "user" if omitted }
  *               phoneNumber: { type: string }
  *               gender: { type: string, enum: [male, female] }
  *               dateOfBirth: { type: string, format: date }
  *               address: { type: string }
+ *               medicalNotes:
+ *                 type: object
+ *                 description: Only used when role is "patient"
+ *                 properties:
+ *                   diagnosis: { type: string }
+ *                   stage: { type: string }
+ *                   chronicDiseases: { type: array, items: { type: string } }
+ *                   allergies: { type: array, items: { type: string } }
+ *                   currentMedication: { type: array, items: { type: string } }
+ *               device:
+ *                 type: object
+ *                 description: Only used when role is "patient"
+ *                 properties:
+ *                   deviceId: { type: string }
  *     responses:
  *       201:
  *         description: Account created; verification email sent
  *       400:
- *         description: Validation error or email already in use
+ *         description: Validation error, password under 8 characters, or email already in use
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       409:
+ *         description: device.deviceId is already assigned to another patient
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
@@ -77,8 +96,8 @@ router.get('/verify/:verificationToken', verifyUserAccount);
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/AuthResponse' }
- *       400:
- *         description: Invalid credentials
+ *       401:
+ *         description: Invalid credentials, or account not yet verified
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
@@ -104,6 +123,11 @@ router.post("/login", loginUser);
  *     responses:
  *       200:
  *         description: If the account exists, a reset code was emailed (generic for privacy)
+ *       500:
+ *         description: Account exists but the reset email failed to send
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/forgot-password', forgotPassword);
 
@@ -146,16 +170,16 @@ router.post("/verify-reset-password", verifyResetPassword);
  *             properties:
  *               email: { type: string, format: email }
  *               code: { type: string }
- *               password: { type: string, format: password }
+ *               password: { type: string, format: password, minLength: 8 }
  *               passwordConfirmation: { type: string, format: password }
  *     responses:
  *       200:
- *         description: Password reset; returns a fresh token
+ *         description: Password reset; returns a fresh token. Any tokens issued before this reset stop working.
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/AuthResponse' }
  *       400:
- *         description: Invalid code or mismatched passwords
+ *         description: Invalid/expired code, mismatched passwords, or password under 8 characters
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
