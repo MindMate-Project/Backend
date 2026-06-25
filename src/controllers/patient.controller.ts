@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Caregiver, IPatient, Patient } from "../models/User";
 import asyncHandler from "express-async-handler";
 import { Types } from "mongoose";
+import { sendPush } from "../services/firebase.service";
 
 export const getAllCaregivers = asyncHandler(async (req: Request, res: Response) => {
     const user = req.user;
@@ -168,6 +169,18 @@ export const respondToCaregiverRequest = asyncHandler(async (req: Request, res: 
 
         const updatedCaregiver = await Caregiver.findById(caregiverId)
             .select('-password -verificationToken -passwordResetToken -passwordResetExpires -resetSessionToken');
+
+        try {
+            if (updatedCaregiver?.fcmTokens?.length) {
+                await sendPush(
+                    updatedCaregiver.fcmTokens,
+                    "Request Accepted",
+                    `${patient.name} accepted your caregiver request`
+                );
+            }
+        } catch (error) {
+            console.error("Failed to send assignment accepted notification:", error);
+        }
 
         res.status(200).json({
             message: "Caregiver request accepted successfully",
