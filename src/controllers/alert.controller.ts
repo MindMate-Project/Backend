@@ -1,6 +1,7 @@
 import { User } from "../models/User";
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
+import { Types } from "mongoose";
 import Alert from "../models/Alert";
 import { canAccessPatient } from "../utils/ownership";
 
@@ -18,6 +19,12 @@ export const createAlert = asyncHandler(async (req: Request, res: Response) => {
     res.status(400);
     throw new Error("Missing required fields");
   }
+
+  if (!Types.ObjectId.isValid(patient_id)) {
+    res.status(400);
+    throw new Error("Invalid patient ID");
+  }
+
   const patient = await User.findById(patient_id);
   if (!patient || patient.role !== "patient") {
     res.status(400);
@@ -51,6 +58,11 @@ export const createAlert = asyncHandler(async (req: Request, res: Response) => {
 export const getPatientAlerts = asyncHandler(async (req: Request, res: Response) => {
   const { patientId } = req.params;
 
+  if (!Types.ObjectId.isValid(patientId)) {
+    res.status(400);
+    throw new Error("Invalid patient ID");
+  }
+
   if (!(await canAccessPatient(req.user, patientId))) {
     res.status(403);
     throw new Error("Access denied");
@@ -72,6 +84,11 @@ export const getPatientAlerts = asyncHandler(async (req: Request, res: Response)
  * @access Private
  */
 export const getAlertById = asyncHandler(async (req: Request, res: Response) => {
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid alert ID");
+  }
+
   const alert = await Alert.findById(req.params.id);
 
   if (!alert) {
@@ -97,6 +114,11 @@ export const getAlertById = asyncHandler(async (req: Request, res: Response) => 
  * @access Private (Caregiver)
  */
 export const acknowledgeAlert = asyncHandler(async (req: Request, res: Response) => {
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid alert ID");
+  }
+
   const alert = await Alert.findById(req.params.id);
 
   if (!alert) {
@@ -133,6 +155,11 @@ export const acknowledgeAlert = asyncHandler(async (req: Request, res: Response)
  * @access Private
  */
 export const deleteAlert = asyncHandler(async (req: Request, res: Response) => {
+  if (!Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid alert ID");
+  }
+
   const alert = await Alert.findById(req.params.id);
 
   if (!alert) {

@@ -7,6 +7,11 @@ export const deviceLocation = asyncHandler(async (req: Request, res: Response) =
     const { patientId } = req.params;
     const user = req.user;
 
+    if (!Types.ObjectId.isValid(patientId)) {
+        res.status(400);
+        throw new Error("Invalid patient ID");
+    }
+
     if (!user || user.role !== "caregiver") {
         res.status(403);
         throw new Error("Only caregivers can access this resource");
