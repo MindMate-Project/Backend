@@ -195,3 +195,66 @@ export const deleteProfilePicture = asyncHandler(async (req: Request, res: Respo
         message: "Profile picture deleted successfully",
     });
 });
+
+// ----------------------------------------------------------------------
+
+/**
+ * @desc Register a device's FCM token for push notifications
+ * @route POST /api/users/fcm-token
+ * @access Private (all roles)
+ */
+export const registerFcmToken = asyncHandler(async (req: Request, res: Response) => {
+    const user = req.user;
+    const { token } = req.body;
+
+    if (!user) {
+        res.status(401);
+        throw new Error("Not authenticated");
+    }
+
+    if (!token || typeof token !== "string") {
+        res.status(400);
+        throw new Error("token is required");
+    }
+
+    // $addToSet is atomic and a no-op if the token is already registered,
+    // so re-registering on every app start (the normal client pattern) never
+    // creates duplicates.
+    await User.findByIdAndUpdate(user._id, {
+        $addToSet: { fcmTokens: token },
+    });
+
+    res.status(200).json({
+        message: "FCM token registered successfully",
+    });
+});
+
+// ----------------------------------------------------------------------
+
+/**
+ * @desc Remove a device's FCM token (e.g. on logout)
+ * @route DELETE /api/users/fcm-token
+ * @access Private (all roles)
+ */
+export const removeFcmToken = asyncHandler(async (req: Request, res: Response) => {
+    const user = req.user;
+    const { token } = req.body;
+
+    if (!user) {
+        res.status(401);
+        throw new Error("Not authenticated");
+    }
+
+    if (!token || typeof token !== "string") {
+        res.status(400);
+        throw new Error("token is required");
+    }
+
+    await User.findByIdAndUpdate(user._id, {
+        $pull: { fcmTokens: token },
+    });
+
+    res.status(200).json({
+        message: "FCM token removed successfully",
+    });
+});
