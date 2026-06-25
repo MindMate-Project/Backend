@@ -65,18 +65,23 @@ export const assignDevice = asyncHandler(async (req: Request, res: Response) => 
         throw new Error("deviceId and patientEmail are required");
     }
 
-    const usedDevice = await Patient.findOne({ "device.deviceId": deviceId });
-
-    if (usedDevice) {
-        res.status(409);
-        throw new Error("This device is used by another patient");
-    }
-
-    const patient = await Patient.findOne({ email: patientEmail });
+    const patient = await Patient.findOne({ email: patientEmail.trim().toLowerCase() });
 
     if (!patient) {
         res.status(401);
         throw new Error("User not found");
+    }
+
+    // Exclude the patient's own record — re-assigning a device they already
+    // have should not be treated as a conflict with "another" patient.
+    const usedDevice = await Patient.findOne({
+        "device.deviceId": deviceId,
+        _id: { $ne: patient._id },
+    });
+
+    if (usedDevice) {
+        res.status(409);
+        throw new Error("This device is used by another patient");
     }
 
     const caregiverId = user._id as Types.ObjectId;

@@ -90,6 +90,18 @@ export const registerUser = asyncHandler(
     let user: IMongooseBaseUser;
 
     if (role === "patient") {
+      const deviceId = device?.deviceId || undefined;
+
+      // Mirrors the uniqueness check assignDevice enforces — without it, a
+      // patient could self-register with a deviceId another patient already has.
+      if (deviceId) {
+        const usedDevice = await Patient.findOne({ "device.deviceId": deviceId });
+        if (usedDevice) {
+          res.status(409);
+          throw new Error("This device is already assigned to another patient");
+        }
+      }
+
       user = await Patient.create({
         ...baseFields,
         role: "patient",
@@ -104,7 +116,7 @@ export const registerUser = asyncHandler(
             }
           : undefined,
         device: {
-          deviceId: device?.deviceId || undefined,
+          deviceId,
         },
       } as unknown as IPatient);
 
