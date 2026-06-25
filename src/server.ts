@@ -37,7 +37,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 setupSwagger(app);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(cors());
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+}));
+
 const server = http.createServer(app);
 
 export const io = setupLocationSocket(server);
