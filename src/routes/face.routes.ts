@@ -23,9 +23,6 @@ const upload = multer({
   }
 });
 
-const faceJsonParser = express.json({ limit: "100mb" });
-const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb" });
-
 /**
  * @swagger
  * /api/face/patient/register-face:
@@ -95,8 +92,6 @@ const faceUrlencodedParser = express.urlencoded({ extended: true, limit: "100mb"
  */
 router.post(
   "/register-face",
-  faceJsonParser,
-  faceUrlencodedParser,
   protect,
   authorize("caregiver", "patient"),
   handleUploadArray(upload, "files", 8),
@@ -165,8 +160,6 @@ router.post(
  */
 router.post(
   "/add-photos",
-  faceJsonParser,
-  faceUrlencodedParser,
   protect,
   authorize("caregiver", "patient"),
   handleUploadArray(upload, "files", 8),
@@ -247,8 +240,6 @@ router.post(
  */
 router.post(
   "/identify-face",
-  faceJsonParser,
-  faceUrlencodedParser,
   protect,
   authorize("patient"),
   handleUploadSingle(upload, "file"),
