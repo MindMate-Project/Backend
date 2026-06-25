@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authorize } from "../middlewares/authorize.middleware";
 import { protect } from "../middlewares/auth.middleware";
-import { deviceLocation, assignDevice } from "../controllers/device.controller";
+import { deviceLocation, assignDevice, removeDevice } from "../controllers/device.controller";
 
 const router = Router();
 
@@ -114,6 +114,49 @@ router.post(
     protect,
     authorize('caregiver'),
     assignDevice
+);
+
+/**
+ * @swagger
+ * /api/device/remove/{patientId}:
+ *   delete:
+ *     summary: Remove the device assigned to a patient
+ *     tags: [Device]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Patient MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Device removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: Device removed from patient successfully
+ *       400:
+ *         description: Invalid patient ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found or no device assigned
+ */
+router.delete(
+    '/remove/:patientId',
+    protect,
+    authorize('caregiver'),
+    removeDevice
 );
 
 export default router;
