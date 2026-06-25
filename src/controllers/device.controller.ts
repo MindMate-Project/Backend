@@ -161,3 +161,107 @@ export const removeDevice = asyncHandler(async (req: Request, res: Response) => 
         message: "Device removed from patient successfully"
     });
 });
+
+export const setSafeZone = asyncHandler(async (req: Request, res: Response) => {
+    const { patientId } = req.params;
+    const { lat, lng, radiusMeters } = req.body;
+    const user = req.user;
+
+    if (!Types.ObjectId.isValid(patientId)) {
+        res.status(400);
+        throw new Error("Invalid patient ID");
+    }
+
+    if (!user || user.role !== "caregiver") {
+        res.status(403);
+        throw new Error("Only caregivers can access this resource");
+    }
+
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    const radiusNum = Number(radiusMeters);
+
+    if (
+        !Number.isFinite(latNum) || latNum < -90 || latNum > 90 ||
+        !Number.isFinite(lngNum) || lngNum < -180 || lngNum > 180 ||
+        !Number.isFinite(radiusNum) || radiusNum <= 0
+    ) {
+        res.status(400);
+        throw new Error("lat (-90..90), lng (-180..180) and a positive radiusMeters are required");
+    }
+
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        res.status(404);
+        throw new Error("Patient not found");
+    }
+
+    const caregiverId = user._id as Types.ObjectId;
+
+    const isAssignedToCaregiver = patient.caregivers.some((id: Types.ObjectId) =>
+        id.equals(caregiverId)
+    );
+
+    if (!isAssignedToCaregiver) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
+
+    patient.homeLocation = { lat: latNum, lng: lngNum, radiusMeters: radiusNum };
+    // Re-arm the exit alert so a newly (re)configured zone is evaluated fresh
+    // on the next location update, instead of inheriting a stale flag from
+    // whatever zone (or lack of one) was in effect before.
+    patient.device.outOfBoundsAlertSent = false;
+    await patient.save();
+
+    res.status(200).json({
+        message: "Safe zone updated successfully",
+        data: {
+            patientId: patient._id,
+            homeLocation: patient.homeLocation,
+        }
+    });
+});
+
+export const removeSafeZone = asyncHandler(async (req: Request, res: Response) => {
+    const { patientId } = req.params;
+    const user = req.user;
+
+    if (!Types.ObjectId.isValid(patientId)) {
+        res.status(400);
+        throw new Error("Invalid patient ID");
+    }
+
+    if (!user || user.role !== "caregiver") {
+        res.status(403);
+        throw new Error("Only caregivers can access this resource");
+    }
+
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        res.status(404);
+        throw new Error("Patient not found");
+    }
+
+    const caregiverId = user._id as Types.ObjectId;
+
+    const isAssignedToCaregiver = patient.caregivers.some((id: Types.ObjectId) =>
+        id.equals(caregiverId)
+    );
+
+    if (!isAssignedToCaregiver) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
+
+    await Patient.findByIdAndUpdate(patientId, {
+        $unset: { homeLocation: "" },
+        $set: { "device.outOfBoundsAlertSent": false },
+    });
+
+    res.status(200).json({
+        message: "Safe zone removed successfully"
+    });
+});

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authorize } from "../middlewares/authorize.middleware";
 import { protect } from "../middlewares/auth.middleware";
-import { deviceLocation, assignDevice, removeDevice } from "../controllers/device.controller";
+import { deviceLocation, assignDevice, removeDevice, setSafeZone, removeSafeZone } from "../controllers/device.controller";
 
 const router = Router();
 
@@ -158,5 +158,81 @@ router.delete(
     authorize('caregiver'),
     removeDevice
 );
+
+/**
+ * @swagger
+ * /api/device/safe-zone/{patientId}:
+ *   patch:
+ *     summary: Set (or update) a patient's safe zone for geofence alerts
+ *     description: >
+ *       When set, the IoT service compares each incoming location update
+ *       against this home point + radius. Crossing the radius creates a
+ *       "location_out_of_bounds" alert and notifies the patient's caregivers.
+ *     tags: [Device]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Patient MongoDB ObjectId
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lat, lng, radiusMeters]
+ *             properties:
+ *               lat:
+ *                 type: number
+ *                 example: 30.0444
+ *               lng:
+ *                 type: number
+ *                 example: 31.2357
+ *               radiusMeters:
+ *                 type: number
+ *                 example: 200
+ *     responses:
+ *       200:
+ *         description: Safe zone updated successfully
+ *       400:
+ *         description: Invalid patient ID or out-of-range lat/lng/radiusMeters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
+ *   delete:
+ *     summary: Remove a patient's safe zone (disables geofence alerts)
+ *     tags: [Device]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Patient MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Safe zone removed successfully
+ *       400:
+ *         description: Invalid patient ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
+ */
+router
+    .route('/safe-zone/:patientId')
+    .patch(protect, authorize('caregiver'), setSafeZone)
+    .delete(protect, authorize('caregiver'), removeSafeZone);
 
 export default router;
