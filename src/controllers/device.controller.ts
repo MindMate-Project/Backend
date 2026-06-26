@@ -162,6 +162,51 @@ export const removeDevice = asyncHandler(async (req: Request, res: Response) => 
     });
 });
 
+export const getSafeZone = asyncHandler(async (req: Request, res: Response) => {
+    const { patientId } = req.params;
+    const user = req.user;
+
+    if (!Types.ObjectId.isValid(patientId)) {
+        res.status(400);
+        throw new Error("Invalid patient ID");
+    }
+
+    if (!user || user.role !== "caregiver") {
+        res.status(403);
+        throw new Error("Only caregivers can access this resource");
+    }
+
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        res.status(404);
+        throw new Error("Patient not found");
+    }
+
+    const caregiverId = user._id as Types.ObjectId;
+
+    const isAssignedToCaregiver = patient.caregivers.some((id: Types.ObjectId) =>
+        id.equals(caregiverId)
+    );
+
+    if (!isAssignedToCaregiver) {
+        res.status(403);
+        throw new Error("You are not assigned to this patient");
+    }
+
+    // Mongoose materializes an empty {} for an unset nested-schema path (rather
+    // than leaving it undefined), so check a real field instead of truthiness.
+    const hasZone = patient.homeLocation?.radiusMeters != null;
+
+    res.status(200).json({
+        message: "Safe zone retrieved successfully",
+        data: {
+            patientId: patient._id,
+            homeLocation: hasZone ? patient.homeLocation : null,
+        }
+    });
+});
+
 export const setSafeZone = asyncHandler(async (req: Request, res: Response) => {
     const { patientId } = req.params;
     const { lat, lng, radiusMeters } = req.body;
