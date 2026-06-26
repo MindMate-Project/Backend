@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authorize } from "../middlewares/authorize.middleware";
 import { protect } from "../middlewares/auth.middleware";
-import { deviceLocation, assignDevice, removeDevice, setSafeZone, removeSafeZone } from "../controllers/device.controller";
+import { deviceLocation, assignDevice, removeDevice, getSafeZone, setSafeZone, removeSafeZone } from "../controllers/device.controller";
 
 const router = Router();
 
@@ -160,6 +160,59 @@ router.delete(
 /**
  * @swagger
  * /api/device/safe-zone/{patientId}:
+ *   get:
+ *     summary: Get a patient's current safe zone
+ *     tags: [Device]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Patient MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Safe zone retrieved successfully (homeLocation is null if none is set)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     patientId:
+ *                       type: string
+ *                     homeLocation:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         lat:
+ *                           type: number
+ *                         lng:
+ *                           type: number
+ *                         radiusMeters:
+ *                           type: number
+ *             example:
+ *               message: Safe zone retrieved successfully
+ *               data:
+ *                 patientId: "67d2bb8a5f4c1f6f91361c88"
+ *                 homeLocation:
+ *                   lat: 30.0444
+ *                   lng: 31.2357
+ *                   radiusMeters: 200
+ *       400:
+ *         description: Invalid patient ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
  *   patch:
  *     summary: Set (or update) a patient's safe zone for geofence alerts
  *     description: >
@@ -230,6 +283,7 @@ router.delete(
  */
 router
     .route('/safe-zone/:patientId')
+    .get(protect, authorize('caregiver'), getSafeZone)
     .patch(protect, authorize('caregiver'), setSafeZone)
     .delete(protect, authorize('caregiver'), removeSafeZone);
 
