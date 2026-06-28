@@ -188,16 +188,57 @@ router.post(
  *       200:
  *         description: >
  *           List of patient reminders (plain array), capped at 50 rows unless a larger limit is requested.
- *           `patient` is returned as a plain id (already known from the URL); `caregiver` is populated with
- *           just `{ _id, name }`. Internal fields (reminderAlertSent, createdAt, updatedAt) are omitted.
+ *           Lighter than the AppointmentReminder/MedicationReminder schemas used elsewhere — see the
+ *           properties below for exactly what's included here.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 oneOf:
- *                   - $ref: '#/components/schemas/AppointmentReminder'
- *                   - $ref: '#/components/schemas/MedicationReminder'
+ *                 type: object
+ *                 properties:
+ *                   _id: { type: string }
+ *                   type: { type: string, enum: [appointment, medication] }
+ *                   patient: { type: string, description: Plain patient id (already known from the URL, so not populated) }
+ *                   caregiver:
+ *                     type: object
+ *                     description: Populated with just the fields needed to display who set the reminder
+ *                     properties:
+ *                       _id: { type: string }
+ *                       name: { type: string }
+ *                   scheduledTime: { type: string, format: date-time }
+ *                   isSent: { type: boolean }
+ *                   isAcknowledged: { type: boolean }
+ *                   groupId: { type: string }
+ *                   doctorName: { type: string, description: Appointment rows only }
+ *                   specialty: { type: string, description: Appointment rows only }
+ *                   location: { type: string, description: Appointment rows only }
+ *                   appointmentType: { type: string, description: Appointment rows only }
+ *                   appointmentDate: { type: string, format: date-time, description: Appointment rows only }
+ *                   notes: { type: string, description: Appointment rows only }
+ *                   medicineName: { type: string, description: Medication rows only }
+ *                   dosage: { type: string, description: Medication rows only }
+ *                   form: { type: string, description: Medication rows only }
+ *                   frequency: { type: string, description: Medication rows only }
+ *                   timesPerDay: { type: number, description: Medication rows only }
+ *                   startDate: { type: string, format: date-time, description: Medication rows only }
+ *                   endDate: { type: string, format: date-time, description: Medication rows only }
+ *             example:
+ *               - _id: "6a40a7cb6b7c0dda2fcc1b2c"
+ *                 type: "medication"
+ *                 patient: "aaaaaaaaaaaaaaaaaaaaaaaa"
+ *                 caregiver: { _id: "bbbbbbbbbbbbbbbbbbbbbbbb", name: "Caregiver Carol" }
+ *                 scheduledTime: "2026-06-28T05:49:15.000Z"
+ *                 isSent: false
+ *                 isAcknowledged: false
+ *                 groupId: "6a40a7cb6b7c0dda2fcc1b2b"
+ *                 medicineName: "Donepezil"
+ *                 dosage: "10mg"
+ *                 form: "tablet"
+ *                 frequency: "daily"
+ *                 timesPerDay: 2
+ *                 startDate: "2026-06-28T04:49:15.000Z"
+ *                 endDate: "2026-06-30T04:49:15.000Z"
  *       403:
  *         description: Access denied
  *       500:
