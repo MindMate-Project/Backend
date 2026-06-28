@@ -180,12 +180,16 @@ router.post(
  *       - in: query
  *         name: limit
  *         schema: { type: integer }
+ *         description: Defaults to 50 if not provided
  *       - in: query
  *         name: skip
  *         schema: { type: integer }
  *     responses:
  *       200:
- *         description: List of patient reminders (plain array; unchanged when no query params)
+ *         description: >
+ *           List of patient reminders (plain array), capped at 50 rows unless a larger limit is requested.
+ *           `patient` is returned as a plain id (already known from the URL); `caregiver` is populated with
+ *           just `{ _id, name }`. Internal fields (reminderAlertSent, createdAt, updatedAt) are omitted.
  *         content:
  *           application/json:
  *             schema:
