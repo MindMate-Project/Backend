@@ -211,14 +211,23 @@ export const getPatientReminders = asyncHandler(async (req: Request, res: Respon
       };
     }
 
+    const DEFAULT_LIMIT = 50;
+
+    // patient is already known from the URL, so it's left unpopulated (just an
+    // id) instead of re-fetching and re-sending the whole patient document
+    // (medicalNotes, known_people with face embeddings, etc.) on every single
+    // row — that turned a 30-reminder response into ~900KB in practice.
+    // reminderAlertSent/createdAt/updatedAt are internal bookkeeping, not
+    // anything a client needs to render.
     let query = Reminder.find(filter)
       .sort({ scheduledTime: 1 }) // Order by time (Ascending)
-      .populate("patient caregiver");
+      .select("-reminderAlertSent -createdAt -updatedAt -__v")
+      .populate("caregiver", "name");
 
     const skipN = Number(skip);
     const limitN = Number(limit);
     if (Number.isFinite(skipN) && skipN > 0) query = query.skip(skipN);
-    if (Number.isFinite(limitN) && limitN > 0) query = query.limit(limitN);
+    query = query.limit(Number.isFinite(limitN) && limitN > 0 ? limitN : DEFAULT_LIMIT);
 
     const reminders = await query;
     res.json(reminders);
