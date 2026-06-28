@@ -3,7 +3,8 @@ import multer from "multer";
 import {
   registerPatientFace,
   identifyPatientByFace,
-  addPhotosToKnownPerson
+  addPhotosToKnownPerson,
+  getKnownPeople
 } from "../controllers/face.controller";
 import { protect } from "../middlewares/auth.middleware";
 import { authorize } from "../middlewares/authorize.middleware";
@@ -22,6 +23,74 @@ const upload = multer({
     cb(null, true);
   }
 });
+
+/**
+ * @swagger
+ * /api/face/patient/known-people:
+ *   get:
+ *     summary: List the people registered for face recognition for an assigned patient (caregiver only)
+ *     description: >
+ *       Lightweight by design — no embeddings, no internal flags.
+ *     tags: [Face]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: patientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Must be a patient assigned to the calling caregiver
+ *     responses:
+ *       200:
+ *         description: Known people retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       relationship:
+ *                         type: string
+ *                       embeddings_count:
+ *                         type: number
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *             example:
+ *               success: true
+ *               message: Known people retrieved successfully
+ *               data:
+ *                 - firstName: "Ahmed"
+ *                   lastName: "Ali"
+ *                   relationship: "son"
+ *                   embeddings_count: 5
+ *                   updated_at: "2026-06-20T10:15:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Patient not found
+ */
+router.get(
+  "/known-people",
+  protect,
+  authorize("caregiver"),
+  getKnownPeople
+);
 
 /**
  * @swagger

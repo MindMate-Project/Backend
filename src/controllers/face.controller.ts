@@ -9,6 +9,46 @@ const normalize = (v: string) => v.trim().toLowerCase();
 
 const PYTHON_AI_URL = process.env.PYTHON_AI_URL;
 
+// ---- LIST KNOWN PEOPLE ----
+
+export const getKnownPeople = asyncHandler(
+  async (req, res: Response) => {
+    const user = req.user;
+
+    // Caregiver-only: must specify which assigned patient via ?patientId=.
+    const targetPatientId = req.query.patientId as string;
+
+    if (!targetPatientId || !(await canAccessPatient(user, targetPatientId))) {
+      res.status(403);
+      throw new Error("You are not allowed to view faces for this patient");
+    }
+
+    const patient = await Patient.findById(targetPatientId).select("known_people");
+
+    if (!patient) {
+      res.status(404);
+      throw new Error("Patient not found");
+    }
+
+    // average_embedding is the raw vector used for matching — purely internal,
+    // never useful to a client — and _id/created_at are left out since there's
+    // no edit/delete-by-id flow for a known person yet.
+    const knownPeople = (patient.known_people || []).map((p) => ({
+      firstName: p.firstName,
+      lastName: p.lastName,
+      relationship: p.relationship,
+      embeddings_count: p.embeddings_count,
+      updated_at: p.updated_at,
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Known people retrieved successfully",
+      data: knownPeople,
+    });
+  }
+);
+
 // ---- REGISTER FACE ----
 
 export const registerPatientFace = asyncHandler(
